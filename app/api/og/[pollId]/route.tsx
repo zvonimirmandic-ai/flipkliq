@@ -1,28 +1,16 @@
 import { ImageResponse } from "next/og";
 import { getActivePollWithVotes } from "@/lib/active-polls";
 import { loadOgFonts } from "@/lib/og-fonts";
+import { getPercentages } from "@/lib/percentages";
 
 export const dynamic = "force-dynamic";
 
 const WIDTH = 1200;
 const HEIGHT = 630;
 
-const BRAND_BG = "#1A1A2E";
+const BRAND_BG = "#0A0A0A";
 const BRAND_SURFACE = "#16213E";
 const BRAND_ACCENT = "#E94560";
-
-function getPercentages(votesA: number, votesB: number) {
-  const total = votesA + votesB;
-
-  if (total === 0) {
-    return { a: 50, b: 50 };
-  }
-
-  return {
-    a: Math.round((votesA / total) * 100),
-    b: Math.round((votesB / total) * 100),
-  };
-}
 
 function truncate(text: string, maxLength: number) {
   return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;

@@ -3,8 +3,25 @@
 @tailwind utilities;
 
 :root {
-  --background: #1a1a2e;
+  --background: #0a0a0a;
   --foreground: #ffffff;
+}
+
+/* Registered as a <color> so the gradient hue animates between categories;
+   on browsers without @property support the switch is instant. */
+@property --feed-glow {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #e945601f;
+}
+
+.feed-bg {
+  --feed-glow: #e945601f;
+  background-color: #0a0a0a;
+  background-image:
+    radial-gradient(ellipse 70% 55% at 0% 0%, var(--feed-glow), transparent 70%),
+    radial-gradient(ellipse 70% 55% at 100% 0%, var(--feed-glow), transparent 70%);
+  transition: --feed-glow 300ms ease;
 }
 
 html {

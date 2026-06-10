@@ -4,7 +4,7 @@ type ErrorScreenProps = {
 
 export function ErrorScreen({ onRetry }: ErrorScreenProps) {
   return (
-    <div className="flex h-full flex-col items-center justify-center bg-brand-bg px-6 text-center">
+    <div className="flex h-full flex-col items-center justify-center px-6 text-center">
       <p className="text-sm font-semibold uppercase tracking-[0.35em] text-brand-accent">
         FLIPKLIQ
       </p>

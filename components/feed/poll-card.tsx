@@ -4,6 +4,7 @@ import type { PollWithVotes } from "@/lib/types";
 import type { VoteCounts } from "@/lib/votes";
 import { OptionCard } from "@/components/feed/option-card";
 import { ShareButton } from "@/components/feed/share-button";
+import { getPercentages } from "@/lib/percentages";
 
 type PollCardProps = {
   poll: PollWithVotes;
@@ -12,19 +13,6 @@ type PollCardProps = {
   voting: boolean;
   onVote: (choice: "a" | "b") => void;
 };
-
-function getPercentages(counts: VoteCounts) {
-  const total = counts.votes_a + counts.votes_b;
-
-  if (total === 0) {
-    return { a: 50, b: 50 };
-  }
-
-  return {
-    a: Math.round((counts.votes_a / total) * 100),
-    b: Math.round((counts.votes_b / total) * 100),
-  };
-}
 
 export function PollCard({
   poll,
@@ -37,7 +25,7 @@ export function PollCard({
     votes_a: poll.votes_a,
     votes_b: poll.votes_b,
   };
-  const percentages = getPercentages(counts);
+  const percentages = getPercentages(counts.votes_a, counts.votes_b);
 
   return (
     <div className="relative flex h-full min-h-0 flex-col px-4 pb-4 pt-6">

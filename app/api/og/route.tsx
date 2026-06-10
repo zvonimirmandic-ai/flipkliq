@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { loadOgFonts } from "@/lib/og-fonts";
 
-const BRAND_BG = "#1A1A2E";
+const BRAND_BG = "#0A0A0A";
 const BRAND_SURFACE = "#16213E";
 const BRAND_ACCENT = "#E94560";
 

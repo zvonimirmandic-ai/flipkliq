@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  CATEGORY_COLORS,
   CategoryTabs,
   type CategoryFilter,
 } from "@/components/feed/category-tabs";
@@ -9,6 +10,7 @@ import { EndScreen } from "@/components/feed/end-screen";
 import { ErrorScreen } from "@/components/feed/error-screen";
 import { FeedSkeleton } from "@/components/feed/feed-skeleton";
 import { PollCard } from "@/components/feed/poll-card";
+import { VoteArchive } from "@/components/feed/vote-archive";
 import { getDeviceFingerprint } from "@/lib/fingerprint";
 import type { PollWithVotes } from "@/lib/types";
 import type { VoteCounts } from "@/lib/votes";
@@ -32,14 +34,18 @@ const EMPTY_MESSAGES: Record<Exclude<CategoryFilter, "All">, string> = {
 
 export function VotingFeed() {
   const [polls, setPolls] = useState<PollWithVotes[]>([]);
+  // Kept in sync with localStorage so the unvoted pool updates as votes land.
+  const [votedIds, setVotedIds] = useState<string[]>([]);
   const [category, setCategory] = useState<CategoryFilter>("All");
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [voting, setVoting] = useState(false);
   const [voteError, setVoteError] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [voteCounts, setVoteCounts] = useState<VoteCounts | null>(null);
+  // The just-voted poll stays pinned while its results are displayed, even
+  // though it is already excluded from the unvoted pool.
+  const [resultPoll, setResultPoll] = useState<PollWithVotes | null>(null);
   const [fingerprint, setFingerprint] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,16 +64,11 @@ export function VotingFeed() {
         throw new Error(data.error ?? "Failed to load polls");
       }
 
-      const votedIds = getVotedPollIds();
-      const unvotedPolls = filterUnvotedPollIds(
-        data.polls as PollWithVotes[],
-        votedIds,
-      );
-
-      setPolls(unvotedPolls);
-      setCurrentIndex(0);
+      setPolls(data.polls as PollWithVotes[]);
+      setVotedIds(getVotedPollIds());
       setShowResults(false);
       setVoteCounts(null);
+      setResultPoll(null);
     } catch (error) {
       console.error(error);
       setLoadError(true);
@@ -80,26 +81,35 @@ export function VotingFeed() {
     loadPolls();
   }, [loadPolls]);
 
+  // Vote check before showing: voted polls are filtered out reactively, so
+  // they can never reappear after a category switch.
+  const unvotedPolls = useMemo(
+    () => filterUnvotedPollIds(polls, votedIds),
+    [polls, votedIds],
+  );
+
   // Polls without a category are grouped under "Other".
   const filteredPolls = useMemo(
     () =>
       category === "All"
-        ? polls
-        : polls.filter((poll) => (poll.category ?? "Other") === category),
-    [polls, category],
+        ? unvotedPolls
+        : unvotedPolls.filter(
+            (poll) => (poll.category ?? "Other") === category,
+          ),
+    [unvotedPolls, category],
   );
 
   const advancePoll = useCallback(() => {
     setShowResults(false);
     setVoteCounts(null);
-    setCurrentIndex((index) => index + 1);
+    setResultPoll(null);
   }, []);
 
   const handleSelectCategory = useCallback((nextCategory: CategoryFilter) => {
     setCategory(nextCategory);
-    setCurrentIndex(0);
     setShowResults(false);
     setVoteCounts(null);
+    setResultPoll(null);
     setVoteError(false);
   }, []);
 
@@ -112,9 +122,17 @@ export function VotingFeed() {
     return () => window.clearTimeout(timer);
   }, [showResults, advancePoll]);
 
+  const currentPoll = resultPoll ?? filteredPolls[0];
+
   async function handleVote(choice: "a" | "b") {
-    const poll = filteredPolls[currentIndex];
-    if (!poll || showResults || voting || !fingerprint) {
+    const poll = currentPoll;
+    if (
+      !poll ||
+      showResults ||
+      voting ||
+      !fingerprint ||
+      votedIds.includes(poll.id)
+    ) {
       return;
     }
 
@@ -138,7 +156,11 @@ export function VotingFeed() {
         throw new Error(data.error ?? "Failed to cast vote");
       }
 
-      markPollVoted(poll.id);
+      // Vote check after casting: record it immediately so the poll leaves
+      // the unvoted pool; resultPoll keeps it on screen for the results.
+      markPollVoted(poll.id, choice);
+      setVotedIds((ids) => (ids.includes(poll.id) ? ids : [...ids, poll.id]));
+      setResultPoll(poll);
       setVoteCounts({
         votes_a: data.votes_a ?? poll.votes_a,
         votes_b: data.votes_b ?? poll.votes_b,
@@ -164,10 +186,16 @@ export function VotingFeed() {
     );
   }
 
-  const currentPoll = filteredPolls[currentIndex];
-
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-brand-bg">
+    <div
+      className="feed-bg flex h-[100dvh] flex-col overflow-hidden"
+      style={
+        // 1F = ~12% alpha appended to the category hex.
+        {
+          "--feed-glow": `${CATEGORY_COLORS[category]}1F`,
+        } as React.CSSProperties
+      }
+    >
       <CategoryTabs selected={category} onSelect={handleSelectCategory} />
 
       {voteError ? (
@@ -190,16 +218,20 @@ export function VotingFeed() {
             voting={voting}
             onVote={handleVote}
           />
+        ) : category === "All" ? (
+          <div className="h-full overflow-y-auto">
+            <div className="h-[70%]">
+              <EndScreen
+                title="All caught up!"
+                message="You've voted on every active poll. Check back soon for more A/B matchups."
+              />
+            </div>
+            <VoteArchive />
+          </div>
         ) : (
           <EndScreen
-            title={
-              category === "All" ? "All caught up!" : `No ${category} polls yet`
-            }
-            message={
-              category === "All"
-                ? "You've voted on every active poll. Check back soon for more A/B matchups."
-                : EMPTY_MESSAGES[category]
-            }
+            title={`No ${category} polls yet`}
+            message={EMPTY_MESSAGES[category]}
           />
         )}
       </div>

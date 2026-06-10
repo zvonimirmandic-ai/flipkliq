@@ -6,6 +6,16 @@ export type CategoryFilter = "All" | (typeof POLL_CATEGORIES)[number];
 
 export const CATEGORY_FILTERS: CategoryFilter[] = ["All", ...POLL_CATEGORIES];
 
+export const CATEGORY_COLORS: Record<CategoryFilter, string> = {
+  All: "#E94560",
+  Fashion: "#FF4D6D",
+  Tech: "#00B4D8",
+  Design: "#7B2FBE",
+  Food: "#FF6B35",
+  Travel: "#0CB89F",
+  Other: "#6B7280",
+};
+
 type CategoryTabsProps = {
   selected: CategoryFilter;
   onSelect: (category: CategoryFilter) => void;
@@ -34,9 +44,14 @@ export function CategoryTabs({ selected, onSelect }: CategoryTabsProps) {
                 });
                 onSelect(category);
               }}
-              className={`inline-flex min-h-[44px] items-center whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-colors ${
+              style={
                 active
-                  ? "bg-brand-accent text-white"
+                  ? { backgroundColor: CATEGORY_COLORS[category] }
+                  : undefined
+              }
+              className={`inline-flex min-h-[44px] items-center whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-colors duration-300 ${
+                active
+                  ? "text-white"
                   : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
               }`}
             >

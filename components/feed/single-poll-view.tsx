@@ -52,7 +52,7 @@ export function SinglePollView({ poll }: SinglePollViewProps) {
         throw new Error(data.error ?? "Failed to cast vote");
       }
 
-      markPollVoted(poll.id);
+      markPollVoted(poll.id, choice);
       setVoteCounts({
         votes_a: data.votes_a ?? poll.votes_a,
         votes_b: data.votes_b ?? poll.votes_b,
