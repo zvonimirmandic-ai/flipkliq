@@ -13,6 +13,7 @@ export const CATEGORY_COLORS: Record<CategoryFilter, string> = {
   Design: "#7B2FBE",
   Food: "#FF6B35",
   Travel: "#0CB89F",
+  "FIFA 2026": "#1DB954",
   Other: "#6B7280",
 };
 

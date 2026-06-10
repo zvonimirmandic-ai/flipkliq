@@ -16,8 +16,10 @@ import type { PollWithVotes } from "@/lib/types";
 import type { VoteCounts } from "@/lib/votes";
 import {
   filterUnvotedPollIds,
+  getVotedChoices,
   getVotedPollIds,
   markPollVoted,
+  type VoteChoice,
 } from "@/lib/voted-polls";
 
 // Long enough to read the results and reach the Share button before advancing.
@@ -29,6 +31,7 @@ const EMPTY_MESSAGES: Record<Exclude<CategoryFilter, "All">, string> = {
   Design: "No design face-offs right now. New pixels are being pushed!",
   Food: "The kitchen is quiet for now. Tasty matchups are cooking!",
   Travel: "No destination duels right now. New trips are boarding soon!",
+  "FIFA 2026": "No matches on the pitch right now. Kickoff is coming soon!",
   Other: "The wildcard pile is empty for now. Check back soon!",
 };
 
@@ -36,6 +39,7 @@ export function VotingFeed() {
   const [polls, setPolls] = useState<PollWithVotes[]>([]);
   // Kept in sync with localStorage so the unvoted pool updates as votes land.
   const [votedIds, setVotedIds] = useState<string[]>([]);
+  const [choices, setChoices] = useState<Record<string, VoteChoice>>({});
   const [category, setCategory] = useState<CategoryFilter>("All");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -43,8 +47,8 @@ export function VotingFeed() {
   const [voteError, setVoteError] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [voteCounts, setVoteCounts] = useState<VoteCounts | null>(null);
-  // The just-voted poll stays pinned while its results are displayed, even
-  // though it is already excluded from the unvoted pool.
+  // The just-voted poll stays pinned fullscreen while its results display;
+  // it only "drops" into the archive once the results delay elapses.
   const [resultPoll, setResultPoll] = useState<PollWithVotes | null>(null);
   const [fingerprint, setFingerprint] = useState<string | null>(null);
 
@@ -66,6 +70,7 @@ export function VotingFeed() {
 
       setPolls(data.polls as PollWithVotes[]);
       setVotedIds(getVotedPollIds());
+      setChoices(getVotedChoices());
       setShowResults(false);
       setVoteCounts(null);
       setResultPoll(null);
@@ -98,6 +103,15 @@ export function VotingFeed() {
           ),
     [unvotedPolls, category],
   );
+
+  // Most recently voted first; the poll currently showing results is held
+  // back until it drops in after the delay.
+  const archivePolls = useMemo(() => {
+    const order = new Map(votedIds.map((id, index) => [id, index]));
+    return polls
+      .filter((poll) => order.has(poll.id) && poll.id !== resultPoll?.id)
+      .sort((a, b) => (order.get(b.id) ?? 0) - (order.get(a.id) ?? 0));
+  }, [polls, votedIds, resultPoll]);
 
   const advancePoll = useCallback(() => {
     setShowResults(false);
@@ -156,15 +170,22 @@ export function VotingFeed() {
         throw new Error(data.error ?? "Failed to cast vote");
       }
 
-      // Vote check after casting: record it immediately so the poll leaves
-      // the unvoted pool; resultPoll keeps it on screen for the results.
-      markPollVoted(poll.id, choice);
-      setVotedIds((ids) => (ids.includes(poll.id) ? ids : [...ids, poll.id]));
-      setResultPoll(poll);
-      setVoteCounts({
+      const counts = {
         votes_a: data.votes_a ?? poll.votes_a,
         votes_b: data.votes_b ?? poll.votes_b,
-      });
+      };
+
+      // Vote check after casting: record it immediately so the poll leaves
+      // the unvoted pool; resultPoll keeps it fullscreen for the results.
+      markPollVoted(poll.id, choice);
+      setVotedIds((ids) => (ids.includes(poll.id) ? ids : [...ids, poll.id]));
+      setChoices((prev) => ({ ...prev, [poll.id]: choice }));
+      // Refresh the poll's counts so its archive card shows live results.
+      setPolls((prev) =>
+        prev.map((p) => (p.id === poll.id ? { ...p, ...counts } : p)),
+      );
+      setResultPoll({ ...poll, ...counts });
+      setVoteCounts(counts);
       setShowResults(true);
     } catch (error) {
       console.error(error);
@@ -188,7 +209,7 @@ export function VotingFeed() {
 
   return (
     <div
-      className="feed-bg flex h-[100dvh] flex-col overflow-hidden"
+      className="feed-bg h-[100dvh] overflow-hidden"
       style={
         // 1F = ~12% alpha appended to the category hex.
         {
@@ -196,44 +217,49 @@ export function VotingFeed() {
         } as React.CSSProperties
       }
     >
-      <CategoryTabs selected={category} onSelect={handleSelectCategory} />
+      <div className="h-full overflow-y-auto overscroll-contain">
+        <div
+          className={`flex flex-col ${
+            currentPoll ? "h-[100dvh]" : "min-h-[55dvh]"
+          }`}
+        >
+          <CategoryTabs selected={category} onSelect={handleSelectCategory} />
 
-      {voteError ? (
-        <div className="shrink-0 px-4 pt-3">
-          <p
-            role="alert"
-            className="rounded-xl bg-brand-accent/15 px-4 py-2.5 text-center text-sm font-medium text-brand-accent"
-          >
-            Couldn&apos;t submit your vote. Tap an option to try again.
-          </p>
-        </div>
-      ) : null}
+          {voteError ? (
+            <div className="shrink-0 px-4 pt-3">
+              <p
+                role="alert"
+                className="rounded-xl bg-brand-accent/15 px-4 py-2.5 text-center text-sm font-medium text-brand-accent"
+              >
+                Couldn&apos;t submit your vote. Tap an option to try again.
+              </p>
+            </div>
+          ) : null}
 
-      <div className="min-h-0 flex-1">
-        {currentPoll ? (
-          <PollCard
-            poll={currentPoll}
-            showResults={showResults}
-            voteCounts={voteCounts}
-            voting={voting}
-            onVote={handleVote}
-          />
-        ) : category === "All" ? (
-          <div className="h-full overflow-y-auto">
-            <div className="h-[70%]">
+          <div className="min-h-0 flex-1">
+            {currentPoll ? (
+              <PollCard
+                poll={currentPoll}
+                showResults={showResults}
+                voteCounts={voteCounts}
+                voting={voting}
+                onVote={handleVote}
+              />
+            ) : category === "All" ? (
               <EndScreen
                 title="All caught up!"
                 message="You've voted on every active poll. Check back soon for more A/B matchups."
               />
-            </div>
-            <VoteArchive />
+            ) : (
+              <EndScreen
+                title={`No ${category} polls yet`}
+                message={EMPTY_MESSAGES[category]}
+              />
+            )}
           </div>
-        ) : (
-          <EndScreen
-            title={`No ${category} polls yet`}
-            message={EMPTY_MESSAGES[category]}
-          />
-        )}
+        </div>
+
+        <VoteArchive polls={archivePolls} choices={choices} />
       </div>
     </div>
   );

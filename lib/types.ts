@@ -23,5 +23,6 @@ export const POLL_CATEGORIES = [
   "Design",
   "Food",
   "Travel",
+  "FIFA 2026",
   "Other",
 ] as const;
