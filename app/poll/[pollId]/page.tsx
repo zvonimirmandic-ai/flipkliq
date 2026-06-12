@@ -2,6 +2,7 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SinglePollView } from "@/components/feed/single-poll-view";
+import { SiteShell } from "@/components/layout/site-shell";
 import { getActivePollWithVotes } from "@/lib/active-polls";
 import { getPollUrl, SITE_URL } from "@/lib/site";
 
@@ -66,5 +67,9 @@ export default async function PollPage({ params }: PollPageProps) {
     notFound();
   }
 
-  return <SinglePollView poll={poll} />;
+  return (
+    <SiteShell>
+      <SinglePollView poll={poll} />
+    </SiteShell>
+  );
 }

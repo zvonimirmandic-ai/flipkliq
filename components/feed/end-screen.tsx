@@ -8,7 +8,7 @@ export function EndScreen({
   message = "You've voted on every active poll. Check back soon for more A/B matchups.",
 }: EndScreenProps) {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+    <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
       <p className="text-sm font-semibold uppercase tracking-[0.35em] text-brand-accent">
         FLIPKLIQ
       </p>

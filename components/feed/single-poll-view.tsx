@@ -3,10 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PollCard } from "@/components/feed/poll-card";
+import { trackEvent } from "@/lib/analytics";
 import { getDeviceFingerprint } from "@/lib/fingerprint";
 import type { PollWithVotes } from "@/lib/types";
 import type { VoteCounts } from "@/lib/votes";
-import { getVotedPollIds, markPollVoted } from "@/lib/voted-polls";
+import {
+  getVotedChoices,
+  getVotedPollIds,
+  markPollVoted,
+  type VoteChoice,
+} from "@/lib/voted-polls";
 
 type SinglePollViewProps = {
   poll: PollWithVotes;
@@ -15,6 +21,7 @@ type SinglePollViewProps = {
 export function SinglePollView({ poll }: SinglePollViewProps) {
   const [showResults, setShowResults] = useState(false);
   const [voteCounts, setVoteCounts] = useState<VoteCounts | null>(null);
+  const [votedChoice, setVotedChoice] = useState<VoteChoice | null>(null);
   const [voting, setVoting] = useState(false);
   const [fingerprint, setFingerprint] = useState<string | null>(null);
 
@@ -25,6 +32,7 @@ export function SinglePollView({ poll }: SinglePollViewProps) {
   useEffect(() => {
     if (getVotedPollIds().includes(poll.id)) {
       setShowResults(true);
+      setVotedChoice(getVotedChoices()[poll.id] ?? null);
     }
   }, [poll.id]);
 
@@ -57,7 +65,14 @@ export function SinglePollView({ poll }: SinglePollViewProps) {
         votes_a: data.votes_a ?? poll.votes_a,
         votes_b: data.votes_b ?? poll.votes_b,
       });
+      setVotedChoice(choice);
       setShowResults(true);
+
+      trackEvent("vote_cast", {
+        poll_id: poll.id,
+        category: poll.category ?? "Other",
+        option: choice,
+      });
     } catch (error) {
       console.error(error);
     } finally {
@@ -66,25 +81,26 @@ export function SinglePollView({ poll }: SinglePollViewProps) {
   }
 
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-brand-bg">
-      <div className="min-h-0 flex-1">
+    <main className="flex-1 bg-brand-bg">
+      <div className="mx-auto w-full max-w-md px-4 pb-6 pt-5 md:max-w-4xl">
         <PollCard
           poll={poll}
           showResults={showResults}
           voteCounts={voteCounts}
           voting={voting}
+          votedChoice={votedChoice}
           onVote={handleVote}
         />
-      </div>
 
-      <footer className="flex shrink-0 justify-center pb-2">
-        <Link
-          href="/"
-          className="inline-flex min-h-[44px] items-center px-4 text-sm font-medium text-white/60 underline-offset-4 hover:text-white hover:underline"
-        >
-          Vote on more polls →
-        </Link>
-      </footer>
-    </div>
+        <div className="mt-2 flex justify-center">
+          <Link
+            href="/"
+            className="inline-flex min-h-[44px] items-center px-4 text-sm font-medium text-white/60 underline-offset-4 hover:text-white hover:underline"
+          >
+            Vote on more polls →
+          </Link>
+        </div>
+      </div>
+    </main>
   );
 }

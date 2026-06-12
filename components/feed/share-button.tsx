@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 import { getPollUrl } from "@/lib/site";
 
 type ShareButtonProps = {
@@ -22,6 +23,8 @@ export function ShareButton({ pollId, title }: ShareButtonProps) {
 
   async function handleShare() {
     const url = getPollUrl(pollId);
+
+    trackEvent("share_clicked", { poll_id: pollId });
 
     if (typeof navigator.share === "function") {
       try {

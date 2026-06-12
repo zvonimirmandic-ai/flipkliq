@@ -3,26 +3,10 @@
 @tailwind utilities;
 
 :root {
-  --background: #0a0a0a;
+  --background: #1a1a2e;
   --foreground: #ffffff;
 }
 
-/* Registered as a <color> so the gradient hue animates between categories;
-   on browsers without @property support the switch is instant. */
-@property --feed-glow {
-  syntax: "<color>";
-  inherits: false;
-  initial-value: #e945601f;
-}
-
-.feed-bg {
-  --feed-glow: #e945601f;
-  background-color: #0a0a0a;
-  background-image:
-    radial-gradient(ellipse 70% 55% at 0% 0%, var(--feed-glow), transparent 70%),
-    radial-gradient(ellipse 70% 55% at 100% 0%, var(--feed-glow), transparent 70%);
-  transition: --feed-glow 300ms ease;
-}
 
 html {
   /* Prevent double-tap zoom without disabling pinch-to-zoom (a11y). */
@@ -68,4 +52,28 @@ textarea {
 
 .archive-card-enter {
   animation: archive-drop-in 400ms ease-out;
+}
+
+/* 🔥 emoji wiggle while the FIFA 2026 tab shows "🔥 HOT" — runs 3x then stops. */
+@keyframes fireWiggle {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(-15deg) scale(1.2);
+  }
+  75% {
+    transform: rotate(15deg) scale(1.2);
+  }
+}
+
+.animate-fire-wiggle {
+  animation: fireWiggle 0.4s ease-in-out 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fire-wiggle {
+    animation: none;
+  }
 }

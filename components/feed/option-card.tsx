@@ -6,6 +6,7 @@ type OptionCardProps = {
   fallbackLabel: string;
   percentage: number | null;
   showResults: boolean;
+  isWinner: boolean;
   disabled: boolean;
   onVote: () => void;
 };
@@ -16,50 +17,48 @@ export function OptionCard({
   fallbackLabel,
   percentage,
   showResults,
+  isWinner,
   disabled,
   onVote,
 }: OptionCardProps) {
   const displayLabel = label || fallbackLabel;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <button
-        type="button"
-        onClick={onVote}
-        disabled={disabled}
-        className="group flex min-h-0 flex-1 flex-col disabled:cursor-default"
-      >
-        <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-brand-surface">
-          <div className="aspect-[9/16] h-full w-full md:aspect-auto md:h-full">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={imageUrl}
-              alt={displayLabel}
-              className="h-full w-full object-cover"
-            />
-          </div>
+    <button
+      type="button"
+      onClick={onVote}
+      disabled={disabled}
+      className={`group relative aspect-square w-full overflow-hidden border border-white/10 bg-brand-surface text-left disabled:cursor-default ${
+        showResults && isWinner ? "ring-2 ring-brand-accent" : ""
+      }`}
+    >
+      <div className="absolute inset-0 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imageUrl}
+          alt={displayLabel}
+          className="h-full w-full object-cover transition-transform duration-500 ease-in-out md:group-hover:scale-110"
+        />
+      </div>
 
-          {showResults && percentage !== null ? (
-            <div className="absolute inset-0 flex flex-col justify-end bg-black/20">
-              <div className="relative h-14 overflow-hidden bg-black/40 sm:h-16">
-                <div
-                  className="absolute inset-y-0 left-0 bg-brand-accent/85 transition-all duration-700 ease-out"
-                  style={{ width: `${percentage}%` }}
-                />
-                <div className="absolute inset-0 flex items-center px-4">
-                  <span className="text-lg font-bold text-white drop-shadow">
-                    {percentage}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </button>
+      {/* Label readability gradient, always visible. */}
+      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-[linear-gradient(transparent,rgba(0,0,0,0.75))]" />
 
-      <p className="mt-2 shrink-0 truncate text-center text-sm font-medium text-white/90">
+      <span className="absolute bottom-3 left-3 text-base font-semibold text-white drop-shadow">
         {displayLabel}
-      </p>
-    </div>
+      </span>
+
+      {showResults && percentage !== null ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+          <span
+            className={`text-6xl font-bold drop-shadow-lg ${
+              isWinner ? "text-brand-accent" : "text-white"
+            }`}
+          >
+            {percentage}%
+          </span>
+        </div>
+      ) : null}
+    </button>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  CATEGORY_COLORS,
   CategoryTabs,
   type CategoryFilter,
 } from "@/components/feed/category-tabs";
@@ -11,6 +10,7 @@ import { ErrorScreen } from "@/components/feed/error-screen";
 import { FeedSkeleton } from "@/components/feed/feed-skeleton";
 import { PollCard } from "@/components/feed/poll-card";
 import { VoteArchive } from "@/components/feed/vote-archive";
+import { trackEvent } from "@/lib/analytics";
 import { getDeviceFingerprint } from "@/lib/fingerprint";
 import type { PollWithVotes } from "@/lib/types";
 import type { VoteCounts } from "@/lib/votes";
@@ -21,9 +21,6 @@ import {
   markPollVoted,
   type VoteChoice,
 } from "@/lib/voted-polls";
-
-// Long enough to read the results and reach the Share button before advancing.
-const RESULTS_DELAY_MS = 7000;
 
 const EMPTY_MESSAGES: Record<Exclude<CategoryFilter, "All">, string> = {
   Fashion: "The runway is clear for now. Fresh fits are on the way!",
@@ -47,8 +44,8 @@ export function VotingFeed() {
   const [voteError, setVoteError] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [voteCounts, setVoteCounts] = useState<VoteCounts | null>(null);
-  // The just-voted poll stays pinned fullscreen while its results display;
-  // it only "drops" into the archive once the results delay elapses.
+  // The just-voted poll stays pinned while its results display; it only
+  // "drops" into the archive once the results delay elapses.
   const [resultPoll, setResultPoll] = useState<PollWithVotes | null>(null);
   const [fingerprint, setFingerprint] = useState<string | null>(null);
 
@@ -94,24 +91,30 @@ export function VotingFeed() {
   );
 
   // Polls without a category are grouped under "Other".
-  const filteredPolls = useMemo(
-    () =>
-      category === "All"
-        ? unvotedPolls
-        : unvotedPolls.filter(
-            (poll) => (poll.category ?? "Other") === category,
-          ),
-    [unvotedPolls, category],
+  const inCategory = useCallback(
+    (poll: PollWithVotes) =>
+      category === "All" || (poll.category ?? "Other") === category,
+    [category],
   );
 
-  // Most recently voted first; the poll currently showing results is held
-  // back until it drops in after the delay.
+  const filteredPolls = useMemo(
+    () => unvotedPolls.filter(inCategory),
+    [unvotedPolls, inCategory],
+  );
+
+  // Archive follows the active category; most recently voted first. The poll
+  // currently showing results is held back until it drops in after the delay.
   const archivePolls = useMemo(() => {
     const order = new Map(votedIds.map((id, index) => [id, index]));
     return polls
-      .filter((poll) => order.has(poll.id) && poll.id !== resultPoll?.id)
+      .filter(
+        (poll) =>
+          order.has(poll.id) &&
+          poll.id !== resultPoll?.id &&
+          inCategory(poll),
+      )
       .sort((a, b) => (order.get(b.id) ?? 0) - (order.get(a.id) ?? 0));
-  }, [polls, votedIds, resultPoll]);
+  }, [polls, votedIds, resultPoll, inCategory]);
 
   const advancePoll = useCallback(() => {
     setShowResults(false);
@@ -120,21 +123,13 @@ export function VotingFeed() {
   }, []);
 
   const handleSelectCategory = useCallback((nextCategory: CategoryFilter) => {
+    trackEvent("category_changed", { category: nextCategory });
     setCategory(nextCategory);
     setShowResults(false);
     setVoteCounts(null);
     setResultPoll(null);
     setVoteError(false);
   }, []);
-
-  useEffect(() => {
-    if (!showResults) {
-      return;
-    }
-
-    const timer = window.setTimeout(advancePoll, RESULTS_DELAY_MS);
-    return () => window.clearTimeout(timer);
-  }, [showResults, advancePoll]);
 
   const currentPoll = resultPoll ?? filteredPolls[0];
 
@@ -176,7 +171,7 @@ export function VotingFeed() {
       };
 
       // Vote check after casting: record it immediately so the poll leaves
-      // the unvoted pool; resultPoll keeps it fullscreen for the results.
+      // the unvoted pool; resultPoll keeps it on screen for the results.
       markPollVoted(poll.id, choice);
       setVotedIds((ids) => (ids.includes(poll.id) ? ids : [...ids, poll.id]));
       setChoices((prev) => ({ ...prev, [poll.id]: choice }));
@@ -187,6 +182,12 @@ export function VotingFeed() {
       setResultPoll({ ...poll, ...counts });
       setVoteCounts(counts);
       setShowResults(true);
+
+      trackEvent("vote_cast", {
+        poll_id: poll.id,
+        category: poll.category ?? "Other",
+        option: choice,
+      });
     } catch (error) {
       console.error(error);
       setVoteError(true);
@@ -201,66 +202,52 @@ export function VotingFeed() {
 
   if (loadError) {
     return (
-      <div className="h-[100dvh] overflow-hidden bg-brand-bg">
+      <main className="flex-1 bg-brand-bg">
         <ErrorScreen onRetry={loadPolls} />
-      </div>
+      </main>
     );
   }
 
   return (
-    <div
-      className="feed-bg h-[100dvh] overflow-hidden"
-      style={
-        // 1F = ~12% alpha appended to the category hex.
-        {
-          "--feed-glow": `${CATEGORY_COLORS[category]}1F`,
-        } as React.CSSProperties
-      }
-    >
-      <div className="h-full overflow-y-auto overscroll-contain">
-        <div
-          className={`flex flex-col ${
-            currentPoll ? "h-[100dvh]" : "min-h-[55dvh]"
-          }`}
-        >
-          <CategoryTabs selected={category} onSelect={handleSelectCategory} />
+    <main className="flex-1 bg-brand-bg">
+      <CategoryTabs selected={category} onSelect={handleSelectCategory} />
 
-          {voteError ? (
-            <div className="shrink-0 px-4 pt-3">
-              <p
-                role="alert"
-                className="rounded-xl bg-brand-accent/15 px-4 py-2.5 text-center text-sm font-medium text-brand-accent"
-              >
-                Couldn&apos;t submit your vote. Tap an option to try again.
-              </p>
-            </div>
-          ) : null}
-
-          <div className="min-h-0 flex-1">
-            {currentPoll ? (
-              <PollCard
-                poll={currentPoll}
-                showResults={showResults}
-                voteCounts={voteCounts}
-                voting={voting}
-                onVote={handleVote}
-              />
-            ) : category === "All" ? (
-              <EndScreen
-                title="All caught up!"
-                message="You've voted on every active poll. Check back soon for more A/B matchups."
-              />
-            ) : (
-              <EndScreen
-                title={`No ${category} polls yet`}
-                message={EMPTY_MESSAGES[category]}
-              />
-            )}
-          </div>
+      {voteError ? (
+        <div className="px-4 pt-3">
+          <p
+            role="alert"
+            className="mx-auto max-w-md rounded-xl bg-brand-accent/15 px-4 py-2.5 text-center text-sm font-medium text-brand-accent"
+          >
+            Couldn&apos;t submit your vote. Tap an option to try again.
+          </p>
         </div>
+      ) : null}
 
-        <VoteArchive polls={archivePolls} choices={choices} />
+      <div className="mx-auto w-full max-w-md px-4 pb-10 pt-5 md:max-w-4xl">
+        {currentPoll ? (
+          <PollCard
+            poll={currentPoll}
+            showResults={showResults}
+            voteCounts={voteCounts}
+            voting={voting}
+            votedChoice={choices[currentPoll.id] ?? null}
+            onVote={handleVote}
+            onNext={advancePoll}
+          />
+        ) : category === "All" ? (
+          <EndScreen
+            title="All caught up!"
+            message="You've voted on every active poll. Check back soon for more A/B matchups."
+          />
+        ) : (
+          <EndScreen
+            title={`No ${category} polls yet`}
+            message={EMPTY_MESSAGES[category]}
+          />
+        )}
       </div>
-    </div>
+
+      <VoteArchive polls={archivePolls} choices={choices} />
+    </main>
   );
 }

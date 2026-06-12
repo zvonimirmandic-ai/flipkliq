@@ -18,11 +18,11 @@ export type PollWithVotes = Poll & {
 };
 
 export const POLL_CATEGORIES = [
+  "FIFA 2026",
   "Fashion",
   "Tech",
   "Design",
   "Food",
   "Travel",
-  "FIFA 2026",
   "Other",
 ] as const;
