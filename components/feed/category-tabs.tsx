@@ -9,7 +9,7 @@ export const CATEGORY_FILTERS: CategoryFilter[] = ["All", ...POLL_CATEGORIES];
 
 export const CATEGORY_COLORS: Record<CategoryFilter, string> = {
   All: "#E94560",
-  Fashion: "#FF4D6D",
+  Fashion: "#FF6B9D",
   Tech: "#00B4D8",
   Design: "#7B2FBE",
   Food: "#FF6B35",

@@ -6,9 +6,9 @@ import {
   CATEGORY_COLORS,
   type CategoryFilter,
 } from "@/components/feed/category-tabs";
+import { CountryBreakdown } from "@/components/feed/country-breakdown";
 import { OptionCard } from "@/components/feed/option-card";
 import { ShareButton } from "@/components/feed/share-button";
-import { getCountryName, getFlagEmoji } from "@/lib/country";
 import { formatPollDate } from "@/lib/format-date";
 import { getPercentages } from "@/lib/percentages";
 import type { VoteChoice } from "@/lib/voted-polls";
@@ -266,46 +266,20 @@ export function PollCard({
                   {resultMessage}
                 </p>
 
-                {poll.top_countries && poll.top_countries.length > 0 ? (
-                  <div>
-                    <p className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">
-                      Around the world
-                    </p>
-                    <ul className="flex flex-col gap-2">
-                      {poll.top_countries.map((country) => {
-                        const split = getPercentages(
-                          country.votes_a,
-                          country.votes_b,
-                        );
-                        return (
-                          <li
-                            key={country.country_code}
-                            className="flex items-center gap-2 text-sm"
-                          >
-                            <span className="text-base leading-none">
-                              {getFlagEmoji(country.country_code)}
-                            </span>
-                            <span className="w-20 shrink-0 truncate text-white/80">
-                              {getCountryName(country.country_code)}
-                            </span>
-                            <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/15">
-                              <div
-                                className="h-full rounded-full"
-                                style={{
-                                  width: `${split.a}%`,
-                                  backgroundColor: categoryColor,
-                                }}
-                              />
-                            </div>
-                            <span className="w-6 shrink-0 text-right text-xs text-white/60">
-                              {country.total}
-                            </span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
+                {poll.comment ? (
+                  <p
+                    className="my-4 border-l-[3px] py-1 pl-3 text-sm italic text-gray-300"
+                    style={{ borderColor: categoryColor }}
+                  >
+                    {poll.comment}
+                  </p>
                 ) : null}
+
+                <CountryBreakdown
+                  countries={poll.top_countries}
+                  accent={categoryColor}
+                  limit={5}
+                />
               </div>
 
               <div className="flex items-center justify-center gap-3">

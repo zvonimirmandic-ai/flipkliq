@@ -4,6 +4,7 @@ import {
   CATEGORY_COLORS,
   type CategoryFilter,
 } from "@/components/feed/category-tabs";
+import { CountryBreakdown } from "@/components/feed/country-breakdown";
 import { formatPollDate } from "@/lib/format-date";
 import { getPercentages } from "@/lib/percentages";
 import type { PollWithVotes } from "@/lib/types";
@@ -142,6 +143,11 @@ function ArchiveCard({
         <p className="text-center text-xs text-gray-400">
           {(poll.votes_a + poll.votes_b).toLocaleString()} total votes
         </p>
+        <CountryBreakdown
+          countries={poll.top_countries}
+          accent={accent}
+          limit={3}
+        />
       </div>
     </li>
   );

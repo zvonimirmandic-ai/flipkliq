@@ -20,6 +20,7 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { createClient } from "@supabase/supabase-js";
+import { v2 as cloudinary } from "cloudinary";
 
 function loadEnvLocal() {
   const content = readFileSync(resolve(process.cwd(), ".env.local"), "utf8");
@@ -145,11 +146,61 @@ const FIFA_UPDATES: FifaUpdate[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Branded placeholder images. The label is rendered onto the placeholder so
-// it's obvious which slot to replace with real art via the admin UI later.
+// Image sourcing: Unsplash search -> Cloudinary re-host. Cached per query.
 // ---------------------------------------------------------------------------
-function placeholderImage(label: string): string {
-  return `https://placehold.co/800x800/16213E/E94560/png?text=${encodeURIComponent(label)}`;
+const imageCache = new Map<string, string>();
+
+async function unsplashOnce(query: string): Promise<string | null> {
+  const key = process.env.UNSPLASH_ACCESS_KEY;
+  if (!key) throw new Error("UNSPLASH_ACCESS_KEY is not set in .env.local");
+
+  // No orientation filter: the UI crops to square via object-cover, and a
+  // squarish constraint makes specific phrases return empty.
+  const url = `https://api.unsplash.com/search/photos?per_page=1&content_filter=high&query=${encodeURIComponent(query)}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Client-ID ${key}`, "Accept-Version": "v1" },
+  });
+
+  const remaining = res.headers.get("X-Ratelimit-Remaining");
+  if (res.status === 401 || res.status === 403 || res.status === 429) {
+    throw new Error(
+      `Unsplash limit/auth error ${res.status} (quota left: ${remaining}). Wait for the hourly reset or check the key.`,
+    );
+  }
+  if (!res.ok) {
+    throw new Error(`Unsplash search failed (${res.status}). Quota left: ${remaining}`);
+  }
+
+  const data = (await res.json()) as { results?: { urls?: { regular?: string } }[] };
+  return data.results?.[0]?.urls?.regular ?? null;
+}
+
+async function unsplashSearch(query: string): Promise<string> {
+  // Try the full phrase, then progressively broader fallbacks so an overly
+  // specific query never comes back empty.
+  const words = query.split(/\s+/);
+  const candidates = [query];
+  if (words.length > 2) candidates.push(words.slice(0, 2).join(" "));
+  if (words.length > 1) candidates.push(words[words.length - 1]);
+
+  for (const q of candidates) {
+    const photo = await unsplashOnce(q);
+    if (photo) return photo;
+  }
+  throw new Error(`No Unsplash result for "${query}" or its fallbacks`);
+}
+
+async function getImage(query: string): Promise<string> {
+  const cached = imageCache.get(query);
+  if (cached) return cached;
+
+  const unsplashUrl = await unsplashSearch(query);
+  const result = await cloudinary.uploader.upload(unsplashUrl, {
+    folder: "flipkliq/polls",
+    resource_type: "image",
+  });
+  imageCache.set(query, result.secure_url);
+  return result.secure_url;
 }
 
 // Factory so `Supabase` matches the real client generics (createClient with no
@@ -166,28 +217,44 @@ async function seedCategory(supabase: Supabase, category: string, polls: Poll[])
 
   const { data: existing, error: exErr } = await supabase
     .from("polls")
-    .select("title")
+    .select("title, option_a_image, option_b_image")
     .eq("category", category);
   if (exErr) throw exErr;
 
   const existingTitles = new Set((existing ?? []).map((p) => p.title as string));
-  const alreadyDone =
+  const titlesMatch =
     existingTitles.size === targetTitles.size &&
     Array.from(targetTitles).every((t) => existingTitles.has(t));
-  if (alreadyDone) {
-    console.log(`  [${category}] already up to date — skipping.`);
+  // Re-seed if any image is still a placeholder, so placeholder categories get
+  // real photos while categories with real images are left alone.
+  const hasPlaceholders = (existing ?? []).some(
+    (p) =>
+      String(p.option_a_image).includes("placehold.co") ||
+      String(p.option_b_image).includes("placehold.co"),
+  );
+
+  if (titlesMatch && !hasPlaceholders) {
+    console.log(`  [${category}] already up to date (real images) — skipping.`);
     return;
   }
 
-  const rows = polls.map((poll) => ({
-    title: poll.title,
-    category,
-    option_a_label: poll.a.label,
-    option_b_label: poll.b.label,
-    option_a_image: placeholderImage(poll.a.label),
-    option_b_image: placeholderImage(poll.b.label),
-    status: "active",
-  }));
+  // Fetch every image first; only mutate the DB once all 20 succeed, so a
+  // mid-run failure (e.g. Unsplash rate limit) never leaves a category empty.
+  console.log(`  [${category}] fetching images…`);
+  const rows = [];
+  for (const poll of polls) {
+    const optionAImage = await getImage(poll.a.query);
+    const optionBImage = await getImage(poll.b.query);
+    rows.push({
+      title: poll.title,
+      category,
+      option_a_label: poll.a.label,
+      option_b_label: poll.b.label,
+      option_a_image: optionAImage,
+      option_b_image: optionBImage,
+      status: "active",
+    });
+  }
 
   const { error: delErr } = await supabase.from("polls").delete().eq("category", category);
   if (delErr) throw delErr;
@@ -195,7 +262,7 @@ async function seedCategory(supabase: Supabase, category: string, polls: Poll[])
   const { error: insErr } = await supabase.from("polls").insert(rows);
   if (insErr) throw insErr;
 
-  console.log(`  [${category}] inserted ${rows.length} polls.`);
+  console.log(`  [${category}] inserted ${rows.length} polls with real images.`);
 }
 
 async function updateFifa(supabase: Supabase) {
@@ -241,6 +308,16 @@ async function main() {
   if (!url || !serviceRoleKey) {
     throw new Error("Missing Supabase env vars in .env.local");
   }
+  if (!process.env.UNSPLASH_ACCESS_KEY) {
+    throw new Error("Missing UNSPLASH_ACCESS_KEY in .env.local");
+  }
+
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+
   const supabase = createSupabase(url, serviceRoleKey);
 
   console.log("Updating FIFA 2026 polls…");
