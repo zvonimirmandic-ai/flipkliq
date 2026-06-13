@@ -1,6 +1,6 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import type { PollWithVotes } from "@/lib/types";
-import { getVoteCountsForPoll } from "@/lib/votes";
+import { getTopCountriesByPoll, getVoteCountsForPoll } from "@/lib/votes";
 
 export async function getActivePollsWithVoteCounts(): Promise<PollWithVotes[]> {
   const supabase = createPublicClient();
@@ -20,12 +20,17 @@ export async function getActivePollsWithVoteCounts(): Promise<PollWithVotes[]> {
     throw error;
   }
 
+  const topCountries = await getTopCountriesByPoll(
+    (polls ?? []).map((poll) => poll.id),
+  );
+
   const pollsWithVotes = await Promise.all(
     (polls ?? []).map(async (poll) => {
       const counts = await getVoteCountsForPoll(poll.id);
       return {
         ...poll,
         ...counts,
+        top_countries: topCountries[poll.id] ?? [],
       };
     }),
   );
@@ -64,5 +69,6 @@ export async function getActivePollWithVotes(
   }
 
   const counts = await getVoteCountsForPoll(poll.id);
-  return { ...poll, ...counts };
+  const topCountries = await getTopCountriesByPoll([poll.id]);
+  return { ...poll, ...counts, top_countries: topCountries[poll.id] ?? [] };
 }

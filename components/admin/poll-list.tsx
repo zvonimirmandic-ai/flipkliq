@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EditPollStatusModal } from "@/components/admin/edit-poll-status-modal";
 import type { PollWithVotes } from "@/lib/types";
@@ -8,6 +8,96 @@ import type { PollWithVotes } from "@/lib/types";
 type PollListProps = {
   polls: PollWithVotes[];
 };
+
+// A thumbnail of an option image with an inline "Replace" upload control.
+function ReplaceableThumb({
+  pollId,
+  side,
+  label,
+  url,
+  onReplaced,
+}: {
+  pollId: string;
+  side: "a" | "b";
+  label: string;
+  url: string;
+  onReplaced: (newUrl: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setError("");
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("side", side);
+      formData.append("image", file);
+
+      const response = await fetch(`/api/admin/polls/${pollId}/image`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error ?? "Upload failed");
+        return;
+      }
+
+      onReplaced(data.image_url as string);
+    } catch {
+      setError("Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="relative h-16 w-16 shrink-0 overflow-hidden border border-white/10 bg-brand-bg">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt={`Option ${label}`} className="h-full w-full object-cover" />
+        <span className="absolute left-0.5 top-0.5 rounded bg-black/60 px-1 text-[10px] font-bold text-white">
+          {label}
+        </span>
+        {uploading ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          </div>
+        ) : null}
+      </div>
+      <div className="min-w-0">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="rounded-lg border border-white/10 px-2.5 py-1 text-xs font-medium text-white/80 transition hover:border-brand-accent hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {uploading ? "Uploading…" : "Replace"}
+        </button>
+        {error ? <p className="mt-1 text-xs text-brand-accent">{error}</p> : null}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFile}
+        className="hidden"
+      />
+    </div>
+  );
+}
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -31,6 +121,17 @@ function statusStyles(status: PollWithVotes["status"]) {
 export function PollList({ polls }: PollListProps) {
   const router = useRouter();
   const [editingPoll, setEditingPoll] = useState<PollWithVotes | null>(null);
+  // Replaced image URLs, keyed `${pollId}:${side}`, so a swapped image shows
+  // immediately without a full page reload.
+  const [imageOverrides, setImageOverrides] = useState<Record<string, string>>(
+    {},
+  );
+
+  const imageFor = (pollId: string, side: "a" | "b", fallback: string) =>
+    imageOverrides[`${pollId}:${side}`] ?? fallback;
+
+  const handleReplaced = (pollId: string, side: "a" | "b", url: string) =>
+    setImageOverrides((prev) => ({ ...prev, [`${pollId}:${side}`]: url }));
 
   if (polls.length === 0) {
     return (
@@ -63,6 +164,23 @@ export function PollList({ polls }: PollListProps) {
                 {poll.category ? (
                   <p className="mt-1 text-sm text-white/50">{poll.category}</p>
                 ) : null}
+
+                <div className="mt-3 flex flex-wrap gap-4">
+                  <ReplaceableThumb
+                    pollId={poll.id}
+                    side="a"
+                    label="A"
+                    url={imageFor(poll.id, "a", poll.option_a_image)}
+                    onReplaced={(url) => handleReplaced(poll.id, "a", url)}
+                  />
+                  <ReplaceableThumb
+                    pollId={poll.id}
+                    side="b"
+                    label="B"
+                    url={imageFor(poll.id, "b", poll.option_b_image)}
+                    onReplaced={(url) => handleReplaced(poll.id, "b", url)}
+                  />
+                </div>
               </div>
 
               <div className="flex items-center gap-3">

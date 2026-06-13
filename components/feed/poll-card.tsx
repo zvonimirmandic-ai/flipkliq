@@ -8,9 +8,35 @@ import {
 } from "@/components/feed/category-tabs";
 import { OptionCard } from "@/components/feed/option-card";
 import { ShareButton } from "@/components/feed/share-button";
+import { getCountryName, getFlagEmoji } from "@/lib/country";
 import { formatPollDate } from "@/lib/format-date";
 import { getPercentages } from "@/lib/percentages";
 import type { VoteChoice } from "@/lib/voted-polls";
+
+const POLL_CTAS = [
+  "Pick a side. See the verdict.",
+  "Find out if you're in the majority.",
+  "See how the internet voted.",
+  "Compare your choice with everyone else's.",
+  "Discover what the crowd prefers.",
+  "Cast your vote and see who wins.",
+  "Vote and see where you stand.",
+  "See if you're part of the winning side.",
+  "Find out how many agree with you.",
+  "Discover your side of the internet.",
+  "See who stands with you.",
+  "Vote to reveal the internet's choice.",
+  "Find out what the internet prefers.",
+  "One vote away from the answer.",
+  "Put your opinion to the test.",
+  "See if your instinct was right.",
+];
+
+// Stable per-poll CTA: seed from the first 8 hex chars of the poll's UUID.
+function ctaForPoll(pollId: string): string {
+  const seed = parseInt(pollId.replace(/-/g, "").slice(0, 8), 16);
+  return POLL_CTAS[seed % POLL_CTAS.length];
+}
 
 type PollCardProps = {
   poll: PollWithVotes;
@@ -110,6 +136,7 @@ export function PollCard({
     CATEGORY_COLORS[category as CategoryFilter] ?? "#E94560";
   const labelA = poll.option_a_label || "Option A";
   const labelB = poll.option_b_label || "Option B";
+  const cta = ctaForPoll(poll.id);
 
   // Contextual result message based on the user's choice vs. the outcome.
   // Tie/majority/minority are read from raw vote counts (not rounded %) so
@@ -157,7 +184,11 @@ export function PollCard({
               {poll.title}
             </h2>
 
-            <div className="mt-5 flex flex-col gap-4 md:flex-row">
+            <p className="mt-3 mb-5 text-center text-sm italic text-gray-400">
+              {cta}
+            </p>
+
+            <div className="flex flex-col gap-4 md:flex-row">
               <div className="w-full min-w-0 md:w-1/2">
                 <OptionCard
                   imageUrl={poll.option_a_image}
@@ -234,6 +265,47 @@ export function PollCard({
                 <p className="text-center text-xl font-bold text-white sm:text-2xl">
                   {resultMessage}
                 </p>
+
+                {poll.top_countries && poll.top_countries.length > 0 ? (
+                  <div>
+                    <p className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">
+                      Around the world
+                    </p>
+                    <ul className="flex flex-col gap-2">
+                      {poll.top_countries.map((country) => {
+                        const split = getPercentages(
+                          country.votes_a,
+                          country.votes_b,
+                        );
+                        return (
+                          <li
+                            key={country.country_code}
+                            className="flex items-center gap-2 text-sm"
+                          >
+                            <span className="text-base leading-none">
+                              {getFlagEmoji(country.country_code)}
+                            </span>
+                            <span className="w-20 shrink-0 truncate text-white/80">
+                              {getCountryName(country.country_code)}
+                            </span>
+                            <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/15">
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${split.a}%`,
+                                  backgroundColor: categoryColor,
+                                }}
+                              />
+                            </div>
+                            <span className="w-6 shrink-0 text-right text-xs text-white/60">
+                              {country.total}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex items-center justify-center gap-3">

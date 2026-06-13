@@ -12,9 +12,18 @@ export type Poll = {
   created_at: string;
 };
 
+export type CountryStat = {
+  country_code: string;
+  votes_a: number;
+  votes_b: number;
+  total: number;
+  preferred: "a" | "b" | "tie";
+};
+
 export type PollWithVotes = Poll & {
   votes_a: number;
   votes_b: number;
+  top_countries?: CountryStat[];
 };
 
 export const POLL_CATEGORIES = [

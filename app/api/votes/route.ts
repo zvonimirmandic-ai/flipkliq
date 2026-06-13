@@ -37,12 +37,31 @@ export async function POST(request: Request) {
       );
     }
 
+    // Country comes from Vercel's geo headers in production. On localhost they
+    // are absent, so fall back to HR (Croatia) to keep the feature testable.
+    const isLocal = process.env.NODE_ENV !== "production";
+    const country_code =
+      request.headers.get("x-vercel-ip-country") || (isLocal ? "HR" : "XX");
+    const country_name =
+      request.headers.get("x-vercel-ip-country-region") ||
+      (isLocal ? "Croatia" : "Unknown");
+
     const supabase = createPublicClient();
-    const { error } = await supabase.from("votes").insert({
+    const baseVote = {
       poll_id: pollId,
       choice,
       device_fingerprint: deviceFingerprint,
-    });
+    };
+
+    let { error } = await supabase
+      .from("votes")
+      .insert({ ...baseVote, country_code, country_name });
+
+    // If the country columns don't exist yet (migration not run), still record
+    // the vote without them so voting never breaks.
+    if (error && /country_code|country_name|42703|PGRST204/i.test(error.message)) {
+      ({ error } = await supabase.from("votes").insert(baseVote));
+    }
 
     if (error) {
       console.error("Failed to cast vote:", error);
