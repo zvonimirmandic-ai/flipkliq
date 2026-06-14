@@ -221,13 +221,13 @@ export function PollCard({
             className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]"
             aria-hidden={!showResults}
           >
-            <div className="flex h-full flex-col overflow-y-auto">
+            <div className="flex h-full flex-col overflow-y-auto px-6 py-8">
               {categoryRow}
-              <h2 className="mt-2 text-left text-2xl font-black leading-tight text-white sm:text-3xl">
+              <h2 className="mt-2 mb-3 text-left text-2xl font-black leading-tight text-white sm:text-3xl">
                 {poll.title}
               </h2>
 
-              <div className="flex flex-1 flex-col justify-center gap-5 py-6">
+              <div className="flex flex-col gap-6">
                 <div className="flex gap-3">
                   <ResultImage
                     imageUrl={poll.option_a_image}
@@ -282,7 +282,7 @@ export function PollCard({
                 />
               </div>
 
-              <div className="flex items-center justify-center gap-3">
+              <div className="mt-6 flex items-center justify-center gap-4 pb-6">
                 <ShareButton pollId={poll.id} title={poll.title} />
                 {onNext ? (
                   <button

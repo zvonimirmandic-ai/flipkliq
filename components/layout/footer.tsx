@@ -2,8 +2,8 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="w-full border-t border-white/10 bg-[#0A0A0A] px-4 py-6">
-      <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-3 text-xs text-white/50 sm:flex-row sm:justify-between">
+    <footer className="w-full border-t border-white/10 bg-transparent px-4 py-6">
+      <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-3 text-xs text-white/60 sm:flex-row sm:justify-between">
         <div className="flex items-center gap-4">
           <Link
             href="/terms"

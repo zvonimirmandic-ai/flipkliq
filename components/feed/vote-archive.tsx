@@ -127,7 +127,7 @@ function ArchiveCard({
         />
       </div>
 
-      <div className="mt-auto flex flex-col gap-2 pt-3">
+      <div className="mt-3 flex flex-col gap-2">
         <ArchiveBar
           label={labelA}
           percentage={percentages.a}
@@ -147,6 +147,7 @@ function ArchiveCard({
           countries={poll.top_countries}
           accent={accent}
           limit={3}
+          showEmpty
         />
       </div>
     </li>

@@ -8,16 +8,22 @@ type CountryBreakdownProps = {
   countries: CountryStat[] | undefined;
   accent: string;
   limit?: number;
+  // When true, always render the section (with an empty state) even if there's
+  // no country data yet — used for consistent archive card layout.
+  showEmpty?: boolean;
 };
 
 // "Votes by country" — flag, country name, A/B split bar, and total per
-// country. Renders nothing when there's no country data yet.
+// country. Hidden when empty unless `showEmpty` is set.
 export function CountryBreakdown({
   countries,
   accent,
   limit = 5,
+  showEmpty = false,
 }: CountryBreakdownProps) {
-  if (!countries || countries.length === 0) {
+  const list = countries ?? [];
+
+  if (list.length === 0 && !showEmpty) {
     return null;
   }
 
@@ -26,8 +32,13 @@ export function CountryBreakdown({
       <p className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">
         Votes by country
       </p>
-      <ul className="flex flex-col gap-2">
-        {countries.slice(0, limit).map((country) => {
+      {list.length === 0 ? (
+        <p className="text-center text-xs italic text-white/40">
+          No country data yet
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {list.slice(0, limit).map((country) => {
           const split = getPercentages(country.votes_a, country.votes_b);
           return (
             <li
@@ -52,7 +63,8 @@ export function CountryBreakdown({
             </li>
           );
         })}
-      </ul>
+        </ul>
+      )}
     </div>
   );
 }

@@ -28,7 +28,9 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-[#0A0A0A]">
+      {/* Transparent header with a subtle top-down fade so poll content stays
+          legible behind the logo as it scrolls underneath. */}
+      <header className="sticky top-0 z-50 w-full bg-gradient-to-b from-brand-bg via-brand-bg/80 to-transparent">
         <div className="flex h-14 items-center justify-between px-4">
           <Link href="/" aria-label="FLIPKLIQ home" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
