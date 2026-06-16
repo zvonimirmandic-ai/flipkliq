@@ -21,36 +21,19 @@ export default function ContactPage() {
             to hear from you.
           </p>
 
-          <dl className="mt-10 flex flex-col gap-4 text-white/80">
+          <div className="mt-10 flex flex-col gap-8">
             <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
-              <dt className="shrink-0 font-semibold text-white">Email:</dt>
-              <dd>
-                <a
-                  href="mailto:hello@flipkliq.com"
-                  className="text-brand-accent hover:underline"
-                >
-                  hello@flipkliq.com
-                </a>
-              </dd>
+              <span className="shrink-0 font-semibold text-white">
+                Email:
+              </span>
+              <a
+                href="mailto:hello@flipkliq.com"
+                className="text-brand-accent hover:underline"
+              >
+                hello@flipkliq.com
+              </a>
             </div>
-            <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
-              <dt className="shrink-0 font-semibold text-white">
-                For brands &amp; agencies:
-              </dt>
-              <dd>
-                <a
-                  href="mailto:partnerships@flipkliq.com"
-                  className="text-brand-accent hover:underline"
-                >
-                  partnerships@flipkliq.com
-                </a>
-              </dd>
-            </div>
-            <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
-              <dt className="shrink-0 font-semibold text-white">Location:</dt>
-              <dd>Zagreb, Croatia</dd>
-            </div>
-          </dl>
+          </div>
 
           <div className="mt-12">
             <ContactForm />

@@ -48,6 +48,22 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
           automatically by our hosting provider (Vercel). Retained for up to
           30 days.
         </li>
+        <li>
+          <strong className="text-white">Country data</strong> — Your
+          approximate country is derived from your IP address via our hosting
+          provider (Vercel) at the time of voting. This country-level data
+          (not your precise location or IP address) is stored permanently in
+          our database and displayed publicly as aggregate voting statistics
+          (e.g., &quot;Country Battle&quot;). No precise location data is
+          stored.
+        </li>
+        <li>
+          <strong className="text-white">Analytics data</strong> — We use
+          Google Analytics 4 to collect anonymised usage data including pages
+          visited, session duration, approximate geographic region, and device
+          type. This data is processed by Google LLC and subject to Google&apos;s
+          Privacy Policy.
+        </li>
       </ul>
     ),
   },
@@ -86,6 +102,11 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
         <li>
           <strong className="text-white">Cloudinary Ltd. (USA)</strong> —
           image hosting. GDPR compliant.
+        </li>
+        <li>
+          <strong className="text-white">Google LLC (USA)</strong> — Google
+          Analytics 4 for usage analytics. Subject to Google&apos;s Data
+          Processing Terms.
         </li>
       </ul>
     ),
@@ -131,8 +152,11 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
     heading: "8. Cookies",
     body: (
       <p>
-        FLIPKLIQ does not use tracking or advertising cookies. We use browser
-        localStorage (not cookies) for vote history.
+        FLIPKLIQ uses browser localStorage (not cookies) for vote history. We
+        also use Google Analytics 4, which sets analytics cookies (_ga,
+        _ga_*) in your browser. These cookies are used solely for anonymised
+        usage analytics and not for advertising or tracking across other
+        sites.
       </p>
     ),
   },

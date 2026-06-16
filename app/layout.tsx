@@ -21,12 +21,12 @@ const DESCRIPTION =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "FLIPKLIQ — A/B Visual Voting",
+    default: "FLIPKLIQ — Pick a side. See the world.",
     template: "%s | FLIPKLIQ",
   },
   description: DESCRIPTION,
   openGraph: {
-    title: "FLIPKLIQ — A/B Visual Voting",
+    title: "FLIPKLIQ — Pick a side. See the world.",
     description: DESCRIPTION,
     url: SITE_URL,
     siteName: "FLIPKLIQ",

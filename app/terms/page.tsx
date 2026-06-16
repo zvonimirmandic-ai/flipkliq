@@ -62,7 +62,11 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
       <p>
         Votes are recorded anonymously using a device fingerprint. FLIPKLIQ
         does not link votes to personal identities. Vote data is used solely
-        to display aggregate results.
+        to display aggregate results. At the time of voting, your country of
+        origin (derived from your IP address) is recorded and displayed
+        publicly in aggregate form as part of poll results (e.g., &quot;Country
+        Battle&quot;, &quot;Votes by Country&quot;). Your country is associated with your
+        vote result but is never linked to your personal identity.
       </p>
     ),
   },
@@ -71,8 +75,9 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
     body: (
       <p>
         FLIPKLIQ uses third-party infrastructure including Supabase
-        (database), Cloudinary (image hosting), and Vercel (hosting). Your use
-        of the platform is also subject to their respective terms of service.
+        (database), Cloudinary (image hosting), Vercel (hosting), and Google
+        LLC (Google Analytics 4) for anonymised usage analytics. Your use of
+        the platform is also subject to their respective terms of service.
       </p>
     ),
   },

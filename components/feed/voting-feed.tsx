@@ -8,7 +8,9 @@ import {
 import { EndScreen } from "@/components/feed/end-screen";
 import { ErrorScreen } from "@/components/feed/error-screen";
 import { FeedSkeleton } from "@/components/feed/feed-skeleton";
+import { FlipkliqNumbers } from "@/components/feed/flipkliq-numbers";
 import { PollCard } from "@/components/feed/poll-card";
+import { TrendingSection } from "@/components/feed/trending-section";
 import { VoteArchive } from "@/components/feed/vote-archive";
 import { trackEvent } from "@/lib/analytics";
 import { getDeviceFingerprint } from "@/lib/fingerprint";
@@ -246,6 +248,10 @@ export function VotingFeed() {
           />
         )}
       </div>
+
+      <TrendingSection />
+
+      <FlipkliqNumbers />
 
       <VoteArchive polls={archivePolls} choices={choices} />
     </main>

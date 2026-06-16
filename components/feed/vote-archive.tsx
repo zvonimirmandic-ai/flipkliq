@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
+import { ArchiveStatsModal } from "@/components/feed/archive-stats-modal";
 import {
   CATEGORY_COLORS,
   type CategoryFilter,
 } from "@/components/feed/category-tabs";
-import { CountryBreakdown } from "@/components/feed/country-breakdown";
 import { formatPollDate } from "@/lib/format-date";
 import { getPercentages } from "@/lib/percentages";
 import type { PollWithVotes } from "@/lib/types";
@@ -37,7 +38,7 @@ function ArchiveImage({
       />
       {chosen ? (
         <span
-          className="absolute right-1 top-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none tracking-wide text-white"
+          className="absolute right-1 top-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white"
           style={{ backgroundColor: accent }}
         >
           Your pick
@@ -88,6 +89,7 @@ function ArchiveCard({
   poll: PollWithVotes;
   choice: VoteChoice | undefined;
 }) {
+  const [statsOpen, setStatsOpen] = useState(false);
   const percentages = getPercentages(poll.votes_a, poll.votes_b);
   const labelA = poll.option_a_label || "Option A";
   const labelB = poll.option_b_label || "Option B";
@@ -143,13 +145,22 @@ function ArchiveCard({
         <p className="text-center text-xs text-gray-400">
           {(poll.votes_a + poll.votes_b).toLocaleString()} total votes
         </p>
-        <CountryBreakdown
-          countries={poll.top_countries}
-          accent={accent}
-          limit={3}
-          showEmpty
-        />
+        <button
+          type="button"
+          onClick={() => setStatsOpen(true)}
+          className="mt-1 inline-flex min-h-[36px] items-center justify-center rounded-lg border border-white/10 text-xs font-medium text-white/80 transition-colors hover:border-white/30 hover:text-white"
+        >
+          View stats →
+        </button>
       </div>
+
+      {statsOpen ? (
+        <ArchiveStatsModal
+          poll={poll}
+          choice={choice}
+          onClose={() => setStatsOpen(false)}
+        />
+      ) : null}
     </li>
   );
 }
@@ -166,11 +177,11 @@ export function VoteArchive({ polls, choices }: VoteArchiveProps) {
   }
 
   return (
-    <section className="mx-auto w-full max-w-md px-4 pb-10 md:max-w-4xl">
+    <section className="mx-auto mt-16 w-full max-w-md px-4 pb-10 md:max-w-4xl">
       <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-brand-accent">
         Your votes
       </h2>
-      <ul className="mt-4 grid w-full grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+      <ul className="mt-6 grid w-full grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
         {polls.map((poll) => (
           <ArchiveCard key={poll.id} poll={poll} choice={choices[poll.id]} />
         ))}
