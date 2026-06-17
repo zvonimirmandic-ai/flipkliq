@@ -23,16 +23,12 @@ export async function GET() {
             fontFamily: "Inter",
           }}
         >
-          <span
-            style={{
-              color: BRAND_ACCENT,
-              fontSize: 96,
-              fontWeight: 700,
-              letterSpacing: 16,
-            }}
-          >
-            FLIPKLIQ
-          </span>
+          <img
+            src="https://www.flipkliq.com/logo.svg"
+            width={560}
+            height={108}
+            style={{ objectFit: "contain" }}
+          />
           <span
             style={{
               color: "#FFFFFF",
