@@ -10,6 +10,7 @@ export type Poll = {
   category: string | null;
   status: PollStatus;
   created_at: string;
+  closes_at: string | null;
   comment: string | null;
 };
 

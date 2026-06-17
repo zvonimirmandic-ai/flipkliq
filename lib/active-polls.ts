@@ -10,7 +10,7 @@ export async function getActivePollsWithVoteCounts(): Promise<PollWithVotes[]> {
   const { data: polls, error } = await supabase
     .from("polls")
     .select(
-      "id, title, option_a_image, option_b_image, option_a_label, option_b_label, category, status, created_at, comment",
+      "id, title, option_a_image, option_b_image, option_a_label, option_b_label, category, status, created_at, closes_at, comment",
     )
     .order("created_at", { ascending: false });
 
@@ -55,7 +55,7 @@ export async function getActivePollWithVotes(
   const { data: poll, error } = await supabase
     .from("polls")
     .select(
-      "id, title, option_a_image, option_b_image, option_a_label, option_b_label, category, status, created_at, comment",
+      "id, title, option_a_image, option_b_image, option_a_label, option_b_label, category, status, created_at, closes_at, comment",
     )
     .eq("id", pollId)
     .maybeSingle();

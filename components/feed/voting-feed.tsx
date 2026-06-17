@@ -85,11 +85,19 @@ export function VotingFeed() {
     loadPolls();
   }, [loadPolls]);
 
-  // Vote check before showing: voted polls are filtered out reactively, so
-  // they can never reappear after a category switch.
+  // Capture "now" once so all closed-poll checks in this render are consistent.
+  const now = useMemo(() => new Date(), []);
+  const isPollClosed = useCallback(
+    (poll: PollWithVotes) =>
+      !!(poll.closes_at && new Date(poll.closes_at) < now),
+    [now],
+  );
+
+  // Vote check before showing: voted polls and past-closes_at polls are
+  // filtered out reactively so they never reappear after a category switch.
   const unvotedPolls = useMemo(
-    () => filterUnvotedPollIds(polls, votedIds),
-    [polls, votedIds],
+    () => filterUnvotedPollIds(polls, votedIds).filter((p) => !isPollClosed(p)),
+    [polls, votedIds, isPollClosed],
   );
 
   // Polls without a category are grouped under "Other".
@@ -104,19 +112,19 @@ export function VotingFeed() {
     [unvotedPolls, inCategory],
   );
 
-  // Archive follows the active category; most recently voted first. The poll
-  // currently showing results is held back until it drops in after the delay.
+  // Archive follows the active category; most recently voted first. Closed
+  // polls (even unvoted ones) appear here so users can see the results.
   const archivePolls = useMemo(() => {
     const order = new Map(votedIds.map((id, index) => [id, index]));
     return polls
       .filter(
         (poll) =>
-          order.has(poll.id) &&
+          (order.has(poll.id) || isPollClosed(poll)) &&
           poll.id !== resultPoll?.id &&
           inCategory(poll),
       )
       .sort((a, b) => (order.get(b.id) ?? 0) - (order.get(a.id) ?? 0));
-  }, [polls, votedIds, resultPoll, inCategory]);
+  }, [polls, votedIds, resultPoll, inCategory, isPollClosed]);
 
   const advancePoll = useCallback(() => {
     setShowResults(false);

@@ -97,15 +97,24 @@ function ArchiveCard({
   const accent =
     CATEGORY_COLORS[category as CategoryFilter] ?? DEFAULT_ACCENT;
 
+  const isClosed = !!(poll.closes_at && new Date(poll.closes_at) < new Date());
+
   return (
     <li className="archive-card-enter flex h-full w-full flex-col rounded-2xl border border-white/10 bg-brand-surface p-3">
       <div className="flex items-baseline justify-between gap-2">
-        <p
-          className="min-w-0 truncate text-xs font-semibold uppercase tracking-wide"
-          style={{ color: accent }}
-        >
-          {category}
-        </p>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <p
+            className="min-w-0 truncate text-xs font-semibold uppercase tracking-wide"
+            style={{ color: accent }}
+          >
+            {category}
+          </p>
+          {isClosed ? (
+            <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none tracking-wide text-gray-400">
+              Closed
+            </span>
+          ) : null}
+        </div>
         <span className="shrink-0 text-[10px] tracking-wide text-gray-400">
           {formatPollDate(poll.created_at)}
         </span>

@@ -61,17 +61,20 @@ export function PollCard({
     CATEGORY_COLORS[category as CategoryFilter] ?? "#E94560";
   const cta = ctaForPoll(poll.id);
 
+  const isClosed = !!(poll.closes_at && new Date(poll.closes_at) < new Date());
+  const effectiveShowResults = showResults || isClosed;
+
   return (
     <div className="relative">
       <div className="[perspective:1400px]">
         <div
           className="relative w-full transition-transform duration-700 ease-in-out [transform-style:preserve-3d]"
-          style={{ transform: showResults ? "rotateY(180deg)" : "rotateY(0deg)" }}
+          style={{ transform: effectiveShowResults ? "rotateY(180deg)" : "rotateY(0deg)" }}
         >
           {/* FRONT — question + voting images (defines the card height) */}
           <div
             className="[backface-visibility:hidden] [transform:rotateY(0deg)]"
-            aria-hidden={showResults}
+            aria-hidden={effectiveShowResults}
           >
             <p className="mb-4 text-right text-xs text-gray-400">
               {formatPollDate(poll.created_at)}
@@ -87,7 +90,7 @@ export function PollCard({
             </h2>
 
             <p className="mb-5 mt-3 text-center text-sm italic text-gray-400">
-              {cta}
+              {isClosed ? "Match ended" : cta}
             </p>
 
             <div className="flex flex-col gap-4 md:flex-row">
@@ -99,7 +102,7 @@ export function PollCard({
                   percentage={null}
                   showResults={false}
                   isWinner={false}
-                  disabled={showResults || voting}
+                  disabled={effectiveShowResults || voting}
                   onVote={() => onVote("a")}
                 />
               </div>
@@ -111,7 +114,7 @@ export function PollCard({
                   percentage={null}
                   showResults={false}
                   isWinner={false}
-                  disabled={showResults || voting}
+                  disabled={effectiveShowResults || voting}
                   onVote={() => onVote("b")}
                 />
               </div>
@@ -121,9 +124,16 @@ export function PollCard({
           {/* BACK — results (same box, pre-rotated so it reads correctly) */}
           <div
             className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]"
-            aria-hidden={!showResults}
+            aria-hidden={!effectiveShowResults}
           >
             <div className="flex h-full flex-col overflow-y-auto px-6 py-8">
+              {isClosed ? (
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-widest text-gray-400">
+                    Match ended
+                  </span>
+                </div>
+              ) : null}
               <PollResults
                 poll={poll}
                 voteCounts={voteCounts}
