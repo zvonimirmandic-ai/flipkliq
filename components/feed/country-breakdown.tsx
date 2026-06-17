@@ -38,31 +38,35 @@ export function CountryBreakdown({
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {list.slice(0, limit).map((country) => {
-          const split = getPercentages(country.votes_a, country.votes_b);
-          return (
-            <li
-              key={country.country_code}
-              className="flex items-center gap-2 text-sm"
-            >
-              <span className="text-base leading-none">
-                {getFlagEmoji(country.country_code)}
-              </span>
-              <span className="w-20 shrink-0 truncate text-white/80">
-                {getCountryName(country.country_code)}
-              </span>
-              <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/15">
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${split.a}%`, backgroundColor: accent }}
-                />
-              </div>
-              <span className="w-6 shrink-0 text-right text-xs text-white/60">
-                {country.total}
-              </span>
-            </li>
-          );
-        })}
+          {(() => {
+            const displayed = list.slice(0, limit);
+            const maxVotes = Math.max(...displayed.map((c) => c.total), 1);
+            return displayed.map((country) => (
+              <li
+                key={country.country_code}
+                className="flex items-center gap-2 text-sm"
+              >
+                <span className="text-base leading-none">
+                  {getFlagEmoji(country.country_code)}
+                </span>
+                <span className="w-20 shrink-0 truncate text-white/80">
+                  {getCountryName(country.country_code)}
+                </span>
+                <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/15">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${(country.total / maxVotes) * 100}%`,
+                      backgroundColor: accent,
+                    }}
+                  />
+                </div>
+                <span className="w-6 shrink-0 text-right text-xs text-white/60">
+                  {country.total}
+                </span>
+              </li>
+            ));
+          })()}
         </ul>
       )}
     </div>
