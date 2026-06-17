@@ -25,6 +25,7 @@ export async function GET() {
         >
           <img
             src="https://www.flipkliq.com/logo.svg"
+            alt=""
             width={560}
             height={108}
             style={{ objectFit: "contain" }}
