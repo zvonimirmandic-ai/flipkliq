@@ -23,6 +23,7 @@ export async function GET() {
             fontFamily: "Inter",
           }}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="https://www.flipkliq.com/logo.svg"
             alt=""

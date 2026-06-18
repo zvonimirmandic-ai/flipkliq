@@ -1,7 +1,6 @@
 "use client";
 
 import { getCountryName, getFlagEmoji } from "@/lib/country";
-import { getPercentages } from "@/lib/percentages";
 import type { CountryStat } from "@/lib/types";
 
 type CountryBreakdownProps = {
