@@ -427,6 +427,7 @@ async function main() {
       option_a_label: m.teamA,
       option_b_label: m.teamB,
       category: "FIFA 2026",
+      group: m.group,
       status: "active",
       closes_at: closesAt(m.kickoff),
       created_at: createdAt(m.kickoff),
