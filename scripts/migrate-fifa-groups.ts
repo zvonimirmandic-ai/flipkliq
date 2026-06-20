@@ -1,6 +1,6 @@
 /**
  * One-time migration: sets the `group` column on existing FIFA 2026 polls
- * by matching option_a_label + option_b_label to the MATCHES list.
+ * by looking up which group each team belongs to.
  * Does NOT delete or re-insert polls — existing votes are preserved.
  *
  * Usage: npx ts-node --project tsconfig.json scripts/migrate-fifa-groups.ts
@@ -37,86 +37,36 @@ const supabase = createClient(url, key, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-// Match list — group + team names (enough to identify each poll)
-const MATCHES = [
-  { group: "A", teamA: "Mexico",        teamB: "South Africa" },
-  { group: "A", teamA: "South Korea",   teamB: "Czechia" },
-  { group: "B", teamA: "Canada",        teamB: "Bosnia and Herzegovina" },
-  { group: "D", teamA: "United States", teamB: "Paraguay" },
-  { group: "B", teamA: "Qatar",         teamB: "Switzerland" },
-  { group: "C", teamA: "Brazil",        teamB: "Morocco" },
-  { group: "C", teamA: "Haiti",         teamB: "Scotland" },
-  { group: "D", teamA: "Australia",     teamB: "Türkiye" },
-  { group: "E", teamA: "Germany",       teamB: "Curaçao" },
-  { group: "F", teamA: "Netherlands",   teamB: "Japan" },
-  { group: "E", teamA: "Ivory Coast",   teamB: "Ecuador" },
-  { group: "F", teamA: "Peru",          teamB: "Saudi Arabia" },
-  { group: "A", teamA: "Mexico",        teamB: "South Korea" },
-  { group: "A", teamA: "South Africa",  teamB: "Czechia" },
-  { group: "G", teamA: "Argentina",     teamB: "New Zealand" },
-  { group: "G", teamA: "Belgium",       teamB: "Egypt" },
-  { group: "H", teamA: "France",        teamB: "Kazakhstan" },
-  { group: "H", teamA: "Colombia",      teamB: "Senegal" },
-  { group: "I", teamA: "Spain",         teamB: "Ghana" },
-  { group: "I", teamA: "Serbia",        teamB: "Chile" },
-  { group: "J", teamA: "Portugal",      teamB: "Slovenia" },
-  { group: "J", teamA: "Austria",       teamB: "Jordan" },
-  { group: "K", teamA: "England",       teamB: "Tunisia" },
-  { group: "K", teamA: "Ukraine",       teamB: "Nigeria" },
-  { group: "L", teamA: "Italy",         teamB: "Cuba" },
-  { group: "L", teamA: "Uruguay",       teamB: "Venezuela" },
-  // Round 2
-  { group: "B", teamA: "Canada",        teamB: "Qatar" },
-  { group: "B", teamA: "Switzerland",   teamB: "Bosnia and Herzegovina" },
-  { group: "C", teamA: "Brazil",        teamB: "Haiti" },
-  { group: "C", teamA: "Scotland",      teamB: "Morocco" },
-  { group: "D", teamA: "United States", teamB: "Australia" },
-  { group: "D", teamA: "Türkiye",       teamB: "Paraguay" },
-  { group: "E", teamA: "Germany",       teamB: "Ivory Coast" },
-  { group: "E", teamA: "Ecuador",       teamB: "Curaçao" },
-  { group: "F", teamA: "Netherlands",   teamB: "Peru" },
-  { group: "F", teamA: "Saudi Arabia",  teamB: "Japan" },
-  { group: "G", teamA: "Argentina",     teamB: "Belgium" },
-  { group: "G", teamA: "Egypt",         teamB: "New Zealand" },
-  { group: "H", teamA: "France",        teamB: "Colombia" },
-  { group: "H", teamA: "Senegal",       teamB: "Kazakhstan" },
-  { group: "I", teamA: "Spain",         teamB: "Serbia" },
-  { group: "I", teamA: "Chile",         teamB: "Ghana" },
-  { group: "J", teamA: "Portugal",      teamB: "Austria" },
-  { group: "J", teamA: "Jordan",        teamB: "Slovenia" },
-  { group: "K", teamA: "England",       teamB: "Ukraine" },
-  { group: "K", teamA: "Nigeria",       teamB: "Tunisia" },
-  { group: "L", teamA: "Italy",         teamB: "Uruguay" },
-  { group: "L", teamA: "Venezuela",     teamB: "Cuba" },
-  { group: "A", teamA: "South Africa",  teamB: "Mexico" },
-  { group: "A", teamA: "Czechia",       teamB: "South Korea" },
-  // Round 3
-  { group: "B", teamA: "Canada",        teamB: "Switzerland" },
-  { group: "B", teamA: "Bosnia and Herzegovina", teamB: "Qatar" },
-  { group: "C", teamA: "Brazil",        teamB: "Scotland" },
-  { group: "C", teamA: "Morocco",       teamB: "Haiti" },
-  { group: "D", teamA: "United States", teamB: "Türkiye" },
-  { group: "D", teamA: "Paraguay",      teamB: "Australia" },
-  { group: "E", teamA: "Germany",       teamB: "Ecuador" },
-  { group: "E", teamA: "Curaçao",       teamB: "Ivory Coast" },
-  { group: "F", teamA: "Netherlands",   teamB: "Saudi Arabia" },
-  { group: "F", teamA: "Japan",         teamB: "Peru" },
-  { group: "G", teamA: "Argentina",     teamB: "Egypt" },
-  { group: "G", teamA: "New Zealand",   teamB: "Belgium" },
-  { group: "H", teamA: "France",        teamB: "Senegal" },
-  { group: "H", teamA: "Kazakhstan",    teamB: "Colombia" },
-  { group: "I", teamA: "Spain",         teamB: "Chile" },
-  { group: "I", teamA: "Ghana",         teamB: "Serbia" },
-  { group: "J", teamA: "Portugal",      teamB: "Jordan" },
-  { group: "J", teamA: "Slovenia",      teamB: "Austria" },
-  { group: "K", teamA: "England",       teamB: "Nigeria" },
-  { group: "K", teamA: "Tunisia",       teamB: "Ukraine" },
-  { group: "L", teamA: "Italy",         teamB: "Venezuela" },
-  { group: "L", teamA: "Cuba",          teamB: "Uruguay" },
-];
+// Team → group mapping (FIFA 2026 — official draw)
+const TEAM_GROUP: Record<string, string> = {
+  // Group A
+  "Mexico": "A", "South Africa": "A", "South Korea": "A", "Czechia": "A",
+  // Group B
+  "Canada": "B", "Bosnia and Herzegovina": "B", "Qatar": "B", "Switzerland": "B",
+  // Group C
+  "Brazil": "C", "Morocco": "C", "Haiti": "C", "Scotland": "C",
+  // Group D
+  "United States": "D", "Paraguay": "D", "Australia": "D", "Türkiye": "D",
+  // Group E
+  "Germany": "E", "Curaçao": "E", "Ivory Coast": "E", "Ecuador": "E",
+  // Group F
+  "Netherlands": "F", "Japan": "F", "Sweden": "F", "Tunisia": "F",
+  // Group G
+  "Belgium": "G", "Egypt": "G", "Iran": "G", "New Zealand": "G",
+  // Group H
+  "Spain": "H", "Cape Verde": "H", "Saudi Arabia": "H", "Uruguay": "H",
+  // Group I
+  "France": "I", "Senegal": "I", "Iraq": "I", "Norway": "I",
+  // Group J
+  "Argentina": "J", "Algeria": "J", "Austria": "J", "Jordan": "J",
+  // Group K
+  "Portugal": "K", "DR Congo": "K", "Uzbekistan": "K", "Colombia": "K",
+  // Group L
+  "England": "L", "Croatia": "L", "Ghana": "L", "Panama": "L",
+};
 
 async function main() {
-  console.log("Fetching existing FIFA 2026 polls...");
+  console.log("Fetching all FIFA 2026 polls...");
 
   const { data: polls, error } = await supabase
     .from("polls")
@@ -132,38 +82,48 @@ async function main() {
 
   let updated = 0;
   let skipped = 0;
-  let notFound = 0;
+  let knockout = 0;
 
-  for (const m of MATCHES) {
-    const poll = polls.find(
-      (p) => p.option_a_label === m.teamA && p.option_b_label === m.teamB
-    );
+  for (const poll of polls) {
+    const teamA = poll.option_a_label;
+    const teamB = poll.option_b_label;
 
-    if (!poll) {
-      console.log(`  ? Not found: ${m.teamA} vs ${m.teamB}`);
-      notFound++;
+    if (!teamA || !teamB) {
+      skipped++;
       continue;
     }
 
-    if (poll.group === m.group) {
+    const groupA = TEAM_GROUP[teamA];
+    const groupB = TEAM_GROUP[teamB];
+
+    // Both teams in same group → group stage match
+    if (!groupA || !groupB || groupA !== groupB) {
+      console.log(`  - Knockout/unknown: ${teamA} vs ${teamB}`);
+      knockout++;
+      continue;
+    }
+
+    const group = groupA;
+
+    if (poll.group === group) {
       skipped++;
       continue;
     }
 
     const { error: updateError } = await supabase
       .from("polls")
-      .update({ group: m.group })
+      .update({ group })
       .eq("id", poll.id);
 
     if (updateError) {
-      console.error(`  ✗ ${m.teamA} vs ${m.teamB}: ${updateError.message}`);
+      console.error(`  ✗ ${teamA} vs ${teamB}: ${updateError.message}`);
     } else {
-      console.log(`  ✓ Group ${m.group}: ${m.teamA} vs ${m.teamB}`);
+      console.log(`  ✓ Group ${group}: ${teamA} vs ${teamB}`);
       updated++;
     }
   }
 
-  console.log(`\nDone. Updated: ${updated}, Already set: ${skipped}, Not found: ${notFound}`);
+  console.log(`\nDone. Updated: ${updated}, Already set: ${skipped}, Knockout/unknown: ${knockout}`);
 }
 
 main();

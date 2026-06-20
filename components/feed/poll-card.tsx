@@ -84,12 +84,11 @@ export function PollCard({
               style={{ color: categoryColor }}
             >
               {category}
-              {poll.group ? (
-                <span className="ml-2 text-gray-400">· Group {poll.group}</span>
-              ) : null}
             </p>
             <h2 className="mt-2 text-left text-4xl font-black leading-tight text-white sm:text-5xl">
-              {poll.title}
+              {poll.group && !poll.title.startsWith("Group ")
+                ? `Group ${poll.group}: ${poll.title}`
+                : poll.title}
             </h2>
 
             <p className="mb-5 mt-3 text-center text-sm italic text-gray-400">
