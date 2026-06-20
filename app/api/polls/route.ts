@@ -19,7 +19,15 @@ export async function GET(request: Request) {
       polls = polls.slice(0, parseInt(limit, 10));
     }
 
-    return NextResponse.json({ polls });
+    const pollsWithDisplayTitle = polls.map((poll) => ({
+      ...poll,
+      display_title:
+        poll.group && !poll.title.startsWith("Group ")
+          ? `Group ${poll.group}: ${poll.title}`
+          : poll.title,
+    }));
+
+    return NextResponse.json({ polls: pollsWithDisplayTitle });
   } catch (error) {
     console.error("Failed to fetch active polls:", error);
     return NextResponse.json(
