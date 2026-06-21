@@ -7,12 +7,17 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
+    const excludeCategory = searchParams.get("exclude_category");
     const limit = searchParams.get("limit");
 
     let polls = await getActivePollsWithVoteCounts();
 
     if (category) {
       polls = polls.filter((poll) => poll.category === category);
+    }
+
+    if (excludeCategory) {
+      polls = polls.filter((poll) => poll.category !== excludeCategory);
     }
 
     // For social posting: only return polls not yet posted (or posted longest ago)
