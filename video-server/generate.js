@@ -197,14 +197,11 @@ async function generateVideo(poll) {
     const frameBuffer = await drawFrame(poll);
     fs.writeFileSync(framePath, frameBuffer);
 
-    const frames = FPS * DURATION;
-    const zoomIncrement = (0.05 / frames).toFixed(6);
-
     console.log(`[generate] Running FFmpeg...`);
     execSync(
       `ffmpeg -y -loop 1 -i "${framePath}" ` +
-      `-vf "zoompan=z='min(zoom+${zoomIncrement},1.05)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=${WIDTH}x${HEIGHT},fps=${FPS}" ` +
-      `-t ${DURATION} -pix_fmt yuv420p -c:v libx264 -preset fast -crf 23 "${videoPath}"`,
+      `-vf "scale=${WIDTH}:${HEIGHT}" ` +
+      `-t ${DURATION} -pix_fmt yuv420p -c:v libx264 -preset ultrafast -crf 28 "${videoPath}"`,
       { stdio: 'pipe' }
     );
 
