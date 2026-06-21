@@ -1,0 +1,14 @@
+{
+  "name": "flipkliq-video-server",
+  "version": "1.0.0",
+  "description": "Video generation server for Flipkliq Instagram Reels and TikTok",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "canvas": "^2.11.2",
+    "express": "^4.18.2"
+  }
+}
