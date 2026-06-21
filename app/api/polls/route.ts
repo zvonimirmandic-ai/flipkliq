@@ -15,6 +15,16 @@ export async function GET(request: Request) {
       polls = polls.filter((poll) => poll.category === category);
     }
 
+    // For social posting: only return polls not yet posted (or posted longest ago)
+    const unposted = polls.filter((p) => !p.last_posted_at);
+    const sorted = [
+      ...unposted,
+      ...polls.filter((p) => p.last_posted_at).sort(
+        (a, b) => new Date(a.last_posted_at!).getTime() - new Date(b.last_posted_at!).getTime()
+      ),
+    ];
+    polls = sorted;
+
     if (limit) {
       polls = polls.slice(0, parseInt(limit, 10));
     }

@@ -9,6 +9,7 @@ export type Poll = {
   option_b_label: string | null;
   category: string | null;
   group: string | null;
+  last_posted_at: string | null;
   status: PollStatus;
   created_at: string;
   closes_at: string | null;
