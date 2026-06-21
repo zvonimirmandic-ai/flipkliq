@@ -13,9 +13,9 @@ try {
   console.warn('Font registration failed, using system defaults:', e.message);
 }
 
-const WIDTH = 1080;
-const HEIGHT = 1920;
-const FPS = 30;
+const WIDTH = 720;
+const HEIGHT = 1280;
+const FPS = 25;
 const DURATION = 8;
 
 function wrapText(ctx, text, maxWidth) {
@@ -68,40 +68,40 @@ async function drawFrame(poll) {
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
   // Brand
-  ctx.font = 'bold 44px "DejaVu Sans"';
+  ctx.font = 'bold 30px "DejaVu Sans"';
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillText('FLIPKLIQ', WIDTH / 2, 110);
+  ctx.fillText('FLIPKLIQ', WIDTH / 2, 74);
 
-  let cursorY = 195;
+  let cursorY = 130;
 
   // Group badge (FIFA only)
   if (poll.group) {
     const badgeText = `GROUP ${poll.group}`;
-    ctx.font = '28px "DejaVu Sans"';
+    ctx.font = '19px "DejaVu Sans"';
     const textW = ctx.measureText(badgeText).width;
-    const bw = textW + 48;
-    const bh = 46;
+    const bw = textW + 32;
+    const bh = 31;
     ctx.fillStyle = 'rgba(255,255,255,0.1)';
-    pathRoundRect(ctx, WIDTH / 2 - bw / 2, cursorY - bh / 2, bw, bh, 23);
+    pathRoundRect(ctx, WIDTH / 2 - bw / 2, cursorY - bh / 2, bw, bh, 15);
     ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.65)';
     ctx.fillText(badgeText, WIDTH / 2, cursorY);
-    cursorY += 76;
+    cursorY += 51;
   }
 
   // Poll question
-  ctx.font = 'bold 72px "DejaVu Sans"';
+  ctx.font = 'bold 48px "DejaVu Sans"';
   ctx.fillStyle = '#ffffff';
-  const titleLines = wrapText(ctx, poll.title || '', WIDTH - 120);
+  const titleLines = wrapText(ctx, poll.title || '', WIDTH - 80);
   titleLines.slice(0, 3).forEach((line, i) => {
-    ctx.fillText(line, WIDTH / 2, cursorY + i * 88);
+    ctx.fillText(line, WIDTH / 2, cursorY + i * 59);
   });
 
   // Flags — vertically centered
-  const flagW = 390;
-  const flagH = 260;
-  const flagY = HEIGHT / 2 - flagH / 2 - 30;
-  const vsGap = 56;
+  const flagW = 260;
+  const flagH = 174;
+  const flagY = HEIGHT / 2 - flagH / 2 - 20;
+  const vsGap = 38;
   const leftX = WIDTH / 2 - flagW - vsGap / 2;
   const rightX = WIDTH / 2 + vsGap / 2;
 
@@ -146,50 +146,50 @@ async function drawFrame(poll) {
   const vsY = flagY + flagH / 2;
   ctx.fillStyle = 'rgba(10,10,10,0.88)';
   ctx.beginPath();
-  ctx.arc(vsX, vsY, 46, 0, Math.PI * 2);
+  ctx.arc(vsX, vsY, 31, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.15)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
-  ctx.font = 'bold 34px "DejaVu Sans"';
+  ctx.font = 'bold 23px "DejaVu Sans"';
   ctx.fillStyle = '#ffffff';
   ctx.fillText('VS', vsX, vsY);
 
   // Team labels
-  ctx.font = 'bold 40px "DejaVu Sans"';
+  ctx.font = 'bold 27px "DejaVu Sans"';
   ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.fillText(poll.option_a_label || 'Option A', leftX + flagW / 2, flagY + flagH + 52);
-  ctx.fillText(poll.option_b_label || 'Option B', rightX + flagW / 2, flagY + flagH + 52);
+  ctx.fillText(poll.option_a_label || 'Option A', leftX + flagW / 2, flagY + flagH + 35);
+  ctx.fillText(poll.option_b_label || 'Option B', rightX + flagW / 2, flagY + flagH + 35);
 
   // Comment box
   if (poll.comment) {
-    const cbY = HEIGHT - 340;
+    const cbY = HEIGHT - 227;
     ctx.fillStyle = 'rgba(255,255,255,0.06)';
-    pathRoundRect(ctx, 70, cbY, WIDTH - 140, 180, 20);
+    pathRoundRect(ctx, 47, cbY, WIDTH - 94, 120, 13);
     ctx.fill();
-    ctx.font = 'italic 40px "DejaVu Sans"';
+    ctx.font = 'italic 27px "DejaVu Sans"';
     ctx.fillStyle = 'rgba(255,255,255,0.65)';
-    const cLines = wrapText(ctx, `"${poll.comment}"`, WIDTH - 180);
+    const cLines = wrapText(ctx, `"${poll.comment}"`, WIDTH - 120);
     cLines.slice(0, 3).forEach((line, i) => {
-      ctx.fillText(line, WIDTH / 2, cbY + 60 + i * 56);
+      ctx.fillText(line, WIDTH / 2, cbY + 40 + i * 37);
     });
   }
 
   // CTA button
-  const ctaY = HEIGHT - 110;
+  const ctaY = HEIGHT - 73;
   ctx.fillStyle = '#7c3aed';
-  pathRoundRect(ctx, WIDTH / 2 - 250, ctaY - 40, 500, 80, 40);
+  pathRoundRect(ctx, WIDTH / 2 - 167, ctaY - 27, 334, 53, 27);
   ctx.fill();
-  ctx.font = 'bold 34px "DejaVu Sans"';
+  ctx.font = 'bold 23px "DejaVu Sans"';
   ctx.fillStyle = '#ffffff';
   ctx.fillText('VOTE → flipkliq.com', WIDTH / 2, ctaY);
 
-  return canvas.toBuffer('image/png');
+  return canvas.toBuffer('image/jpeg', { quality: 0.92 });
 }
 
 async function generateVideo(poll) {
   const tmpDir = fs.mkdtempSync('/tmp/reel-');
-  const framePath = path.join(tmpDir, 'frame.png');
+  const framePath = path.join(tmpDir, 'frame.jpg');
   const videoPath = path.join(tmpDir, 'reel.mp4');
 
   try {
