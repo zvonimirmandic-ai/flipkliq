@@ -207,10 +207,11 @@ async function generateVideo(poll) {
 
     console.log(`[generate] Uploading to Supabase Storage...`);
     const ws = require('ws');
+    const fetch = require('node-fetch');
     const supabase = createClient(
       process.env.SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY,
-      { auth: { autoRefreshToken: false, persistSession: false }, realtime: { transport: ws } }
+      { auth: { autoRefreshToken: false, persistSession: false }, realtime: { transport: ws }, global: { fetch } }
     );
 
     const fileName = `reel-${poll.id}-${Date.now()}.mp4`;
