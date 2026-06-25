@@ -49,140 +49,158 @@ function pathRoundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+function drawFlagImage(ctx, img, x, y, w, h) {
+  const imgAspect = img.width / img.height;
+  const containerAspect = w / h;
+  let sx = 0, sy = 0, sw = img.width, sh = img.height;
+  if (imgAspect > containerAspect) {
+    sw = img.height * containerAspect;
+    sx = (img.width - sw) / 2;
+  } else {
+    sh = img.width / containerAspect;
+    sy = (img.height - sh) / 2;
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+
 async function drawFrame(poll) {
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext('2d');
-
-  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  // Background
-  ctx.fillStyle = '#0a0a0a';
+  const PAD = 28;
+  const flagW = WIDTH - PAD * 2;
+  const flagH = 270;
+
+  // Background — match website dark navy
+  ctx.fillStyle = '#0d1117';
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  // Subtle purple glow
-  const grad = ctx.createRadialGradient(WIDTH / 2, HEIGHT / 2, 0, WIDTH / 2, HEIGHT / 2, 860);
-  grad.addColorStop(0, 'rgba(124,58,237,0.18)');
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  let y = 44;
 
   // Brand
-  ctx.font = 'bold 30px "DejaVu Sans"';
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillText('FLIPKLIQ', WIDTH / 2, 74);
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 22px "DejaVu Sans"';
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  ctx.fillText('FLIPKLIQ', WIDTH / 2, y);
+  y += 38;
 
-  let cursorY = 130;
-
-  // Group badge (FIFA only)
-  if (poll.group) {
-    const badgeText = `GROUP ${poll.group}`;
-    ctx.font = '19px "DejaVu Sans"';
-    const textW = ctx.measureText(badgeText).width;
-    const bw = textW + 32;
-    const bh = 31;
-    ctx.fillStyle = 'rgba(255,255,255,0.1)';
-    pathRoundRect(ctx, WIDTH / 2 - bw / 2, cursorY - bh / 2, bw, bh, 15);
+  // Category badge (green for FIFA, purple for others)
+  const isFifa = poll.category === 'FIFA 2026';
+  const badgeColor = isFifa ? '#22c55e' : '#a78bfa';
+  const catLabel = poll.category ? poll.category.toUpperCase() : '';
+  if (catLabel) {
+    ctx.font = 'bold 15px "DejaVu Sans"';
+    const tw = ctx.measureText(catLabel).width;
+    const bw = tw + 24; const bh = 26;
+    ctx.fillStyle = isFifa ? 'rgba(34,197,94,0.12)' : 'rgba(167,139,250,0.12)';
+    pathRoundRect(ctx, PAD, y - bh / 2, bw, bh, 13);
     ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.65)';
-    ctx.fillText(badgeText, WIDTH / 2, cursorY);
-    cursorY += 51;
+    ctx.fillStyle = badgeColor;
+    ctx.textAlign = 'left';
+    ctx.fillText(catLabel, PAD + 12, y);
+    y += 38;
   }
 
-  // Poll question
-  ctx.font = 'bold 48px "DejaVu Sans"';
+  // Poll title — left aligned, large bold
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 46px "DejaVu Sans"';
   ctx.fillStyle = '#ffffff';
-  const titleLines = wrapText(ctx, poll.title || '', WIDTH - 80);
+  const titleLines = wrapText(ctx, poll.title || '', WIDTH - PAD * 2);
   titleLines.slice(0, 3).forEach((line, i) => {
-    ctx.fillText(line, WIDTH / 2, cursorY + i * 59);
+    ctx.fillText(line, PAD, y + i * 56);
   });
+  y += titleLines.slice(0, 3).length * 56 + 14;
 
-  // Flags — vertically centered
-  const flagW = 260;
-  const flagH = 174;
-  const flagY = HEIGHT / 2 - flagH / 2 - 20;
-  const vsGap = 38;
-  const leftX = WIDTH / 2 - flagW - vsGap / 2;
-  const rightX = WIDTH / 2 + vsGap / 2;
+  // Subtitle
+  ctx.textAlign = 'left';
+  ctx.font = 'italic 19px "DejaVu Sans"';
+  ctx.fillStyle = 'rgba(255,255,255,0.38)';
+  ctx.fillText("Vote to reveal the internet's choice.", PAD, y);
+  y += 34;
 
   // Flag A
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  pathRoundRect(ctx, PAD, y, flagW, flagH, 12);
+  ctx.fill();
   try {
     const imgA = await loadImage(poll.option_a_image);
     ctx.save();
-    pathRoundRect(ctx, leftX, flagY, flagW, flagH, 16);
+    pathRoundRect(ctx, PAD, y, flagW, flagH, 12);
     ctx.clip();
-    ctx.drawImage(imgA, leftX, flagY, flagW, flagH);
+    drawFlagImage(ctx, imgA, PAD, y, flagW, flagH);
     ctx.restore();
-  } catch {
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    pathRoundRect(ctx, leftX, flagY, flagW, flagH, 16);
-    ctx.fill();
+  } catch { /* placeholder */ }
+
+  // Label overlay flag A
+  if (poll.option_a_label) {
+    const lh = 40;
+    ctx.fillStyle = 'rgba(0,0,0,0.62)';
+    ctx.fillRect(PAD, y + flagH - lh, flagW, lh);
+    ctx.font = 'bold 20px "DejaVu Sans"';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+    ctx.fillText(poll.option_a_label, PAD + 14, y + flagH - lh / 2);
   }
-  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-  ctx.lineWidth = 2;
-  pathRoundRect(ctx, leftX, flagY, flagW, flagH, 16);
-  ctx.stroke();
+  y += flagH + 12;
+
+  // VS divider
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, y + 13); ctx.lineTo(WIDTH / 2 - 22, y + 13); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(WIDTH / 2 + 22, y + 13); ctx.lineTo(WIDTH - PAD, y + 13); ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 16px "DejaVu Sans"';
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.fillText('VS', WIDTH / 2, y + 13);
+  y += 30;
 
   // Flag B
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  pathRoundRect(ctx, PAD, y, flagW, flagH, 12);
+  ctx.fill();
   try {
     const imgB = await loadImage(poll.option_b_image);
     ctx.save();
-    pathRoundRect(ctx, rightX, flagY, flagW, flagH, 16);
+    pathRoundRect(ctx, PAD, y, flagW, flagH, 12);
     ctx.clip();
-    ctx.drawImage(imgB, rightX, flagY, flagW, flagH);
+    drawFlagImage(ctx, imgB, PAD, y, flagW, flagH);
     ctx.restore();
-  } catch {
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    pathRoundRect(ctx, rightX, flagY, flagW, flagH, 16);
-    ctx.fill();
+  } catch { /* placeholder */ }
+
+  // Label overlay flag B
+  if (poll.option_b_label) {
+    const lh = 40;
+    ctx.fillStyle = 'rgba(0,0,0,0.62)';
+    ctx.fillRect(PAD, y + flagH - lh, flagW, lh);
+    ctx.font = 'bold 20px "DejaVu Sans"';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+    ctx.fillText(poll.option_b_label, PAD + 14, y + flagH - lh / 2);
   }
-  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-  ctx.lineWidth = 2;
-  pathRoundRect(ctx, rightX, flagY, flagW, flagH, 16);
-  ctx.stroke();
+  y += flagH + 18;
 
-  // VS circle
-  const vsX = WIDTH / 2;
-  const vsY = flagY + flagH / 2;
-  ctx.fillStyle = 'rgba(10,10,10,0.88)';
-  ctx.beginPath();
-  ctx.arc(vsX, vsY, 31, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  ctx.font = 'bold 23px "DejaVu Sans"';
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText('VS', vsX, vsY);
-
-  // Team labels
-  ctx.font = 'bold 27px "DejaVu Sans"';
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.fillText(poll.option_a_label || 'Option A', leftX + flagW / 2, flagY + flagH + 35);
-  ctx.fillText(poll.option_b_label || 'Option B', rightX + flagW / 2, flagY + flagH + 35);
-
-  // Comment box
+  // Comment
   if (poll.comment) {
-    const cbY = HEIGHT - 227;
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
-    pathRoundRect(ctx, 47, cbY, WIDTH - 94, 120, 13);
-    ctx.fill();
-    ctx.font = 'italic 27px "DejaVu Sans"';
-    ctx.fillStyle = 'rgba(255,255,255,0.65)';
-    const cLines = wrapText(ctx, `"${poll.comment}"`, WIDTH - 120);
-    cLines.slice(0, 3).forEach((line, i) => {
-      ctx.fillText(line, WIDTH / 2, cbY + 40 + i * 37);
+    ctx.textAlign = 'left';
+    ctx.font = 'italic 19px "DejaVu Sans"';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    const cLines = wrapText(ctx, `"${poll.comment}"`, WIDTH - PAD * 2);
+    cLines.slice(0, 2).forEach((line, i) => {
+      ctx.fillText(line, PAD, y + i * 28);
     });
+    y += cLines.slice(0, 2).length * 28 + 12;
   }
 
-  // CTA button
-  const ctaY = HEIGHT - 73;
+  // CTA — pinned near bottom
+  const ctaY = HEIGHT - 52;
   ctx.fillStyle = '#7c3aed';
-  pathRoundRect(ctx, WIDTH / 2 - 167, ctaY - 27, 334, 53, 27);
+  pathRoundRect(ctx, PAD, ctaY - 24, WIDTH - PAD * 2, 48, 24);
   ctx.fill();
-  ctx.font = 'bold 23px "DejaVu Sans"';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 20px "DejaVu Sans"';
   ctx.fillStyle = '#ffffff';
-  ctx.fillText('VOTE → flipkliq.com', WIDTH / 2, ctaY);
+  ctx.fillText('VOTE NOW → flipkliq.com', WIDTH / 2, ctaY);
 
   return canvas.toBuffer('image/jpeg', { quality: 0.92 });
 }
@@ -198,9 +216,12 @@ async function generateVideo(poll) {
     fs.writeFileSync(framePath, frameBuffer);
 
     console.log(`[generate] Running FFmpeg...`);
+    const fadeFrames = Math.round(FPS * 0.5);
+    const totalFrames = FPS * DURATION;
+    const fadeOutStart = totalFrames - fadeFrames;
     execSync(
       `ffmpeg -y -loop 1 -i "${framePath}" ` +
-      `-vf "scale=${WIDTH}:${HEIGHT}" ` +
+      `-vf "fade=in:0:${fadeFrames},fade=out:${fadeOutStart}:${fadeFrames}" ` +
       `-t ${DURATION} -pix_fmt yuv420p -c:v libx264 -preset ultrafast -crf 28 "${videoPath}"`,
       { stdio: 'pipe' }
     );
